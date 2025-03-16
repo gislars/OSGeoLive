@@ -79,9 +79,9 @@ chmod a+x "$USER_HOME"/Desktop/josm.desktop
 # add an icon for viewing The Map online
 mkdir -p /usr/local/share/applications
 
-# v17 Belem_BR  -1.44262 -48.46636
-MAP_CENTER="lat=-1.44262&lon=-48.46636"
-MARKER="mlat=-1.44262&mlon=-48.46636"
+# v17 Münster 51.963541 7.614284
+MAP_CENTER="lat=51.963541&lon=7.614284"
+MARKER="mlat=51.963541&mlon=7.614284"
 ZOOM="16"
 
 cat << EOF > /usr/local/share/applications/osm_online.desktop
@@ -103,9 +103,9 @@ cp /usr/local/share/applications/osm_online.desktop "$USER_HOME/Desktop/"
 #### install sample OSM data
 ## http://download.osgeo.org/livedvd/16/osm/Prizren_XK.osm.bz2
 
-CITY="BELEM_BR"
+CITY="muenster"
 #         w    s        e        n
-BBOX="-48.52,-1.49,-48.4,-1.36"
+BBOX="7.5897085,51.9205942,7.6647924,51.989763999999994"
 
 #
 # City OSM data:
@@ -122,7 +122,7 @@ BBOX="-48.52,-1.49,-48.4,-1.36"
 
 ### Please update to latest data at the last minute! See data dir on server for details.
 wget -N --progress=dot:mega \
-   "https://download.osgeo.org/livedvd/data/osm/$CITY/$CITY.osm.bz2"
+   "https://nx112.your-storageshare.de/s/JpBMDs4PsDTameL/download/muenster.osm.bz2"
 
 wget -c --tries=3 --progress=dot:mega \
    -O /usr/local/share/osm/sample.osm \
