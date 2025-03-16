@@ -90,7 +90,18 @@ cp ../app-conf/apt/firefox-nosnap.pref /etc/apt/preferences.d/
 # Add OSGeoLive repository
 if [ "$BUILD_MODE" = "release" ] ; then
    cp ../sources.list.d/osgeolive.list /etc/apt/sources.list.d/
-   # cp ../sources.list.d/osgeolive-nightly.list /etc/apt/sources.list.d/
+   # QGIS
+   wget -O /etc/apt/keyrings/qgis-archive-keyring.gpg https://download.qgis.org/downloads/qgis-archive-keyring.gpg
+   chmod a+r /etc/apt/keyrings/qgis-archive-keyring.asc
+   cp ../sources.list.d/qgis.list /etc/apt/sources.list.d/
+   #Docker
+   curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+   chmod a+r /etc/apt/keyrings/docker.asc
+   cp ../sources.list.d/docker.list /etc/apt/sources.list.d/
+   # VSCode
+   wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/keyrings/packages.microsoft.gpg
+   chmod a+r /etc/apt/keyrings/microsoft.asc
+   cp ../sources.list.d/vscode.list /etc/apt/sources.list.d/
 else
    cp ../sources.list.d/osgeolive-nightly.list /etc/apt/sources.list.d/
 fi
@@ -116,6 +127,11 @@ apt-get install --yes wget less zip unzip bzip2 p7zip \
   locate patch menu vim nano screen iotop xfonts-jmk \
   ghostscript htop units gdebi xkb-data \
   xfonts-100dpi xfonts-75dpi zenity curl firefox
+
+apt-get install docker-ce docker-ce-cli \
+  containerd.io docker-buildx-plugin docker-compose-plugin
+
+apt-get install code
 
 # removed from list:
 # cvs cvsutils fuseiso dlocate medit nedit a2ps netpbm qiv lynx mutt mc
