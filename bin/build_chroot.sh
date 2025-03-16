@@ -412,7 +412,7 @@ if [ "$ARCH" = "amd64" ] ; then
       -eltorito-alt-boot \
       -e '--interval:appended_partition_2:::' \
       -no-emul-boot \
-      -udf \
+      -iso-level 3 \
       -o ../"$ISO_NAME.iso" .
    # sudo isohybrid -u ../"$ISO_NAME.iso"
 else
