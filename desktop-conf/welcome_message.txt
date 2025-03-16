@@ -1,4 +1,4 @@
-Welcome to OSGeoLive 17.0
+Welcome to OSGeoLive 17.0 (FOSSGIS 2025 Version)
 
 See the Help icon on the Desktop for information about the
 OSGeoLive disc and virtual-machine, including a synopsis of bundled
