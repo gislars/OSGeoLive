@@ -87,6 +87,8 @@ rm /etc/udev/rules.d/70-snap*.rules
 cp ../app-conf/apt/nosnap.pref /etc/apt/preferences.d/
 cp ../app-conf/apt/firefox-nosnap.pref /etc/apt/preferences.d/
 
+mkdir -p /etc/apt/keyrings/
+
 # Add OSGeoLive repository
 if [ "$BUILD_MODE" = "release" ] ; then
    cp ../sources.list.d/osgeolive.list /etc/apt/sources.list.d/
@@ -99,8 +101,7 @@ if [ "$BUILD_MODE" = "release" ] ; then
    chmod a+r /etc/apt/keyrings/docker.asc
    cp ../sources.list.d/docker.list /etc/apt/sources.list.d/
    # VSCode
-   wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/keyrings/packages.microsoft.gpg
-   chmod a+r /etc/apt/keyrings/microsoft.asc
+   wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/keyrings/packages.microsoft.gpg > /dev/null
    cp ../sources.list.d/vscode.list /etc/apt/sources.list.d/
 else
    cp ../sources.list.d/osgeolive-nightly.list /etc/apt/sources.list.d/
@@ -120,7 +121,6 @@ apt-key adv --keyserver keyserver.ubuntu.com --recv-keys CE49EC21
 
 apt-get -q update
 
-
 # Install some useful stuff
 apt-get install --yes wget less zip unzip bzip2 p7zip \
   git openssh-client lftp usbutils wireless-tools \
@@ -130,6 +130,8 @@ apt-get install --yes wget less zip unzip bzip2 p7zip \
 
 apt-get install docker-ce docker-ce-cli \
   containerd.io docker-buildx-plugin docker-compose-plugin
+
+usermod -aG docker $USER_NAME
 
 apt-get install code
 
