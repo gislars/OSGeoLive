@@ -128,11 +128,18 @@ apt-get install --yes wget less zip unzip bzip2 p7zip \
   ghostscript htop units gdebi xkb-data \
   xfonts-100dpi xfonts-75dpi zenity curl firefox
 
+# Install Docker
 apt-get install docker-ce docker-ce-cli \
   containerd.io docker-buildx-plugin docker-compose-plugin
 
 usermod -aG docker $USER_NAME
 
+# Install Node.js
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
+\. "$HOME/.nvm/nvm.sh"
+nvm install 22
+
+# Install VSCode
 apt-get install code
 
 # removed from list:
