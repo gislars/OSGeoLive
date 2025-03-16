@@ -59,8 +59,8 @@ echo "linux-image-generic hold" | dpkg --set-selections
 
 # Install latest greatest security packages etc.
 apt-get -q update
-#FIXME: Enable updates after beta
-# apt-get --yes upgrade
+#FIXME: Enable updates after beta, enabled for FOSSGIS 2025
+apt-get --yes upgrade
 
 # Remove snapd applications and service
 # snap remove --purge firefox
@@ -130,7 +130,8 @@ apt-get install --yes wget less zip unzip bzip2 p7zip \
 
 # Install Docker
 apt-get install docker-ce docker-ce-cli \
-  containerd.io docker-buildx-plugin docker-compose-plugin
+  containerd.io docker-buildx-plugin docker-compose-plugin \
+  fuse-overlayfs
 
 usermod -aG docker $USER_NAME
 
