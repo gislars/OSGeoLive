@@ -26,6 +26,8 @@
 #apt-get install --yes default-jdk default-jre
 apt-get install --yes openjdk-11-jdk openjdk-11-jre
 
+ln -s /usr/lib/jvm/java-11-openjdk-amd64/ /usr/lib/jvm/default-java
+
 cat <<EOF >> /etc/environment
 # fix #2478 - java ugly/non-antialiased font rendering
 _JAVA_OPTIONS='-Dawt.useSystemAAFontSettings=on -Dswing.aatext=true'
