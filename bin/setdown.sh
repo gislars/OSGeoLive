@@ -71,6 +71,27 @@ systemctl start manage_user_groups.service
 ## Enable manage_user_groups service at startup
 systemctl enable manage_user_groups.service
 
+# workaround
+if [ ! -e /etc/systemd/system/manage_docker_group.service ] ; then
+    cat << EOF > /etc/systemd/system/manage_docker_group.service
+[Unit]
+Description=Add user to docker group
+
+[Service]
+ExecStart=/usr/sbin/adduser $USER_NAME docker
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+fi
+
+systemctl daemon-reload
+systemctl start manage_docker_group.service
+systemctl enable manage_docker_group.service
+
+
 # Re-enable if user does not belong to groups
 # cp ../desktop-conf/casper/27osgeo_groups \
 #   /usr/share/initramfs-tools/scripts/casper-bottom/
