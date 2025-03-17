@@ -47,18 +47,14 @@ if [ -z "$USER_NAME" ] ; then
 fi
 USER_HOME="/home/$USER_NAME"
 
-TMP_DIR=/tmp/build_grass
-mkdir -p "$TMP_DIR"
+# NVM installieren
+su - $USER_NAME -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash"
 
-apt-get --quiet update
+# NVM initialisieren
+su - $USER_NAME -c ". $USER_HOME/.nvm/nvm.sh && nvm install 22"
 
-# Install Node.js
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-\. "$HOME/.nvm/nvm.sh"
-nvm install 22
-
-# cleanup
-rmdir "$TMP_DIR"
+# Optional: Überprüfe die Installation
+su - $USER_NAME -c ". $USER_HOME/.nvm/nvm.sh && node -v && npm -v"
 
 ####
 "$BUILD_DIR"/diskspace_probe.sh "`basename $0`" end
