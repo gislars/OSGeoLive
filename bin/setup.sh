@@ -135,11 +135,6 @@ apt-get install docker-ce docker-ce-cli \
 
 usermod -aG docker $USER_NAME
 
-# Install Node.js
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-\. "$HOME/.nvm/nvm.sh"
-nvm install 22
-
 # Install VSCode
 apt-get install code
 

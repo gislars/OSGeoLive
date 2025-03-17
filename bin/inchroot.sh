@@ -181,6 +181,9 @@ export USER_NAME
 # ./install_gvsig.sh "$ARCH" # install_vm_only
 ./install_gpsprune.sh
 
+## Node.sj
+./install_node.sh
+
 ## Java + default tomcat
 # ./install_52nSOS.sh # install_vm_only
 
@@ -273,12 +276,12 @@ rm /etc/hosts
 rm /etc/resolv.conf
 ln -s /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 
-# If you installed software, be sure to run 
+# If you installed software, be sure to run
 rm /var/lib/dbus/machine-id
 rm /sbin/initctl
 dpkg-divert --rename --remove /sbin/initctl
 
-# Now umount (unmount) special filesystems and exit chroot 
+# Now umount (unmount) special filesystems and exit chroot
 umount /proc || umount -lf /proc
 umount /sys
 umount /dev/pts
