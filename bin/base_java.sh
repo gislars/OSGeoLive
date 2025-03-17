@@ -23,7 +23,8 @@
 ####
 
 # NOTE: We have changed the java-common package in our ppa to point default-jdk to openjdk-17
-apt-get install --yes default-jdk default-jre
+#apt-get install --yes default-jdk default-jre
+apt-get install --yes openjdk-17-jdk openjdk-17-jre
 
 cat <<EOF >> /etc/environment
 # fix #2478 - java ugly/non-antialiased font rendering
