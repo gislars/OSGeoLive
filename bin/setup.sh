@@ -129,6 +129,8 @@ apt-get install --yes wget less zip unzip bzip2 p7zip \
   xfonts-100dpi xfonts-75dpi zenity curl firefox \
   apt-transport-https
 
+apt-get install --yes python3-psycopg2=2.9.9-1build1
+
 # removed from list:
 # cvs cvsutils fuseiso dlocate medit nedit a2ps netpbm qiv lynx mutt mc
 # xchat rxvt scrot arandr sgt-puzzles sopwith subversion subversion-tools
