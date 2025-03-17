@@ -126,17 +126,8 @@ apt-get install --yes wget less zip unzip bzip2 p7zip \
   git openssh-client lftp usbutils wireless-tools \
   locate patch menu vim nano screen iotop xfonts-jmk \
   ghostscript htop units gdebi xkb-data \
-  xfonts-100dpi xfonts-75dpi zenity curl firefox
-
-# Install Docker
-apt-get install docker-ce docker-ce-cli \
-  containerd.io docker-buildx-plugin docker-compose-plugin \
-  fuse-overlayfs
-
-usermod -aG docker $USER_NAME
-
-# Install VSCode
-apt-get install code
+  xfonts-100dpi xfonts-75dpi zenity curl firefox \
+  apt-transport-https
 
 # removed from list:
 # cvs cvsutils fuseiso dlocate medit nedit a2ps netpbm qiv lynx mutt mc

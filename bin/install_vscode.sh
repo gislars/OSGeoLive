@@ -1,7 +1,7 @@
 #!/bin/sh
 #############################################################################
 #
-# Purpose: This script will install Node.sj
+# Purpose: This script will install VSCode
 #
 #############################################################################
 # Copyright (c) 2014-2024 The Open Source Geospatial Foundation and others.
@@ -31,14 +31,8 @@ if [ -z "$USER_NAME" ] ; then
 fi
 USER_HOME="/home/$USER_NAME"
 
-# NVM installieren
-su - $USER_NAME -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash"
-
-# NVM initialisieren
-su - $USER_NAME -c ". $USER_HOME/.nvm/nvm.sh && nvm install 22"
-
-# Optional: Überprüfe die Installation
-su - $USER_NAME -c ". $USER_HOME/.nvm/nvm.sh && node -v && npm -v"
+# Install VSCode
+apt-get install code
 
 ####
 "$BUILD_DIR"/diskspace_probe.sh "`basename $0`" end
