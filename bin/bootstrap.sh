@@ -26,10 +26,22 @@
 
 SCRIPT_DIR=/usr/local/share
 
+# On a build host, default to the account that invoked sudo instead of
+# requiring a dedicated "user" account. Inside the chroot, inchroot.sh
+# exports USER_NAME=user explicitly.
 if [ -z "$USER_NAME" ] ; then
-    USER_NAME="user"
+    if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ] ; then
+        USER_NAME="$SUDO_USER"
+    else
+        USER_NAME="user"
+    fi
 fi
-USER_HOME="/home/$USER_NAME"
+
+if ! id "$USER_NAME" > /dev/null 2>&1 ; then
+    echo "ERROR: user '$USER_NAME' does not exist. Set USER_NAME to an existing account." >&2
+    exit 1
+fi
+USER_HOME=`getent passwd "$USER_NAME" | cut -d: -f6`
 
 # Parse arguments to be able to build specific branch from specific git repository.
 # Defaults to master branch and official OSGeo git repository.
@@ -54,20 +66,24 @@ fi
 echo "Running bootstrap.sh with the following settings:"
 echo "GIT_REPO: $GIT_REPO"
 echo "GIT_BRANCH: $GIT_BRANCH"
+echo "USER_NAME: $USER_NAME ($USER_HOME)"
 
 # Install git
 apt-get -q update
 apt-get --assume-yes install git
 
 # Clone git repository to specified branch
-cd "$SCRIPT_DIR"
-git clone -b "$GIT_BRANCH" "$GIT_REPO" gisvm
-echo "Git clone finished."
+cd "$SCRIPT_DIR" || exit 1
+if [ -d gisvm/.git ] ; then
+    echo "$SCRIPT_DIR/gisvm already exists, skipping clone."
+else
+    git clone -b "$GIT_BRANCH" "$GIT_REPO" gisvm || exit 1
+    echo "Git clone finished."
+fi
 
-chown -R "$USER_NAME":"$USER_NAME" gisvm
-cd "$USER_HOME"
-ln -s "$SCRIPT_DIR/gisvm" "$USER_HOME/gisvm"
-ln -s "$SCRIPT_DIR/gisvm" /etc/skel/gisvm
+chown -R "$USER_NAME":"$(id -gn "$USER_NAME")" gisvm
+ln -sfn "$SCRIPT_DIR/gisvm" "$USER_HOME/gisvm"
+ln -sfn "$SCRIPT_DIR/gisvm" /etc/skel/gisvm
 
 # make a directory for the install logs
 mkdir -p /var/log/osgeolive/

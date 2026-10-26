@@ -99,6 +99,11 @@ cat << EOF > /etc/gai.conf
 precedence ::ffff:0:0/96  100
 EOF
 
+USER_NAME="user"
+export USER_NAME
+# SUDO_USER leaks in from the host's "sudo chroot" and must not be used here
+unset SUDO_USER
+
 cd /tmp/
 
 chmod a+x bootstrap.sh
@@ -114,8 +119,6 @@ cp /tmp/CHANGES.txt /usr/local/share/gisvm/
 #######################################################
 # Replacement for main.sh
 #######################################################
-USER_NAME="user"
-export USER_NAME
 
 ./setup.sh "$BUILD_MODE"
 

@@ -79,16 +79,23 @@ else
 fi
 echo "Git branch: $GIT_BRANCH"
 
-DIR="/usr/local/share/gisvm/bin"
-GIT_DIR="/usr/local/share/gisvm"
-BUILD_HOME="/home/user"
-VERSION=`cat "$DIR"/../VERSION.txt`
+DIR=`cd "$(dirname "$0")" && pwd`
+GIT_DIR=`dirname "$DIR"`
+if [ -z "$BUILD_DIR" ] ; then
+    BUILD_DIR="$GIT_DIR/build"
+fi
+echo "Source checkout: $GIT_DIR"
+echo "Build directory: $BUILD_DIR"
+VERSION=`cat "$GIT_DIR"/VERSION.txt`
 PACKAGE_NAME="osgeolive"
 cd "$GIT_DIR"
 REVISION=`git show-ref --head --hash head --hash=7`
 REVISION_FULL=`git show-ref --head --hash head`
 
-GIT_BUILD=`git describe --long --tags | awk -F'-' '{print $2}'`
+GIT_BUILD=`git describe --long --tags 2>/dev/null | awk -F'-' '{print $2}'`
+if [ -z "$GIT_BUILD" ] ; then
+    GIT_BUILD=`git rev-list --count HEAD`
+fi
 
 #Selecting iso name and build name
 if [ "$BUILD_MODE" = "release" ]; then
@@ -109,11 +116,18 @@ echo "==============================================================="
 echo "Start Building $ISO_NAME"
 echo "==============================================================="
 
-#Some initial cleaning
-#  when run as root, ~ is /root/.
-rm -rf "$BUILD_HOME"/livecdtmp/edit
-rm -rf "$BUILD_HOME"/livecdtmp/lzfiles
-rm -rf "$BUILD_HOME"/livecdtmp/wget-log
+#Some initial cleaning, including leftovers of an aborted previous build
+for MOUNTPOINT in edit/dev edit/dev/pts edit/proc edit/sys mnt ; do
+    if mountpoint -q "$BUILD_DIR/$MOUNTPOINT" 2>/dev/null ; then
+        sudo umount -l "$BUILD_DIR/$MOUNTPOINT"
+    fi
+done
+rm -rf "$BUILD_DIR"/edit
+rm -rf "$BUILD_DIR"/lzfiles
+rm -rf "$BUILD_DIR"/extract-cd
+rm -rf "$BUILD_DIR"/mnt
+rm -f "$BUILD_DIR"/*.partition
+rm -rf "$BUILD_DIR"/wget-log
 
 echo
 echo "Installing build tools"
@@ -129,8 +143,8 @@ echo "====================================="
 
 #Stuff to be done the 1st time, should already be in place for additional builds
 #Download into an empty directory 
-mkdir -p "$BUILD_HOME"/livecdtmp
-cd "$BUILD_HOME"/livecdtmp
+mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR"
 #mv ubuntu-9.04-desktop-i386.iso ~/livecdtmp
 UBU_MIRROR="http://cdimage.ubuntu.com"
 UBU_RELEASE="24.04"
@@ -142,7 +156,7 @@ wget -c --progress=dot:mega \
    # "$UBU_MIRROR/lubuntu/releases/$UBU_RELEASE/beta/$UBU_ISO"
 #Start with a fresh copy
 #Mount the Desktop .iso
-mkdir mnt
+mkdir -p mnt
 sudo mount -o loop "$UBU_ISO" mnt
 echo "Lubuntu $ISO_RELEASE $ARCH image mounted."
 
@@ -186,10 +200,17 @@ echo "======================================"
 
 #NOW IN CHROOT
 #sudo chroot edit
-sudo cp "$DIR"/inchroot.sh "$BUILD_HOME"/livecdtmp/edit/tmp/
-sudo cp "$DIR"/bootstrap.sh "$BUILD_HOME"/livecdtmp/edit/tmp/
-sudo cp "$GIT_DIR"/VERSION.txt "$BUILD_HOME"/livecdtmp/edit/tmp/
-sudo cp "$GIT_DIR"/CHANGES.txt "$BUILD_HOME"/livecdtmp/edit/tmp/
+sudo cp "$DIR"/inchroot.sh "$BUILD_DIR"/edit/tmp/
+sudo cp "$DIR"/bootstrap.sh "$BUILD_DIR"/edit/tmp/
+sudo cp "$GIT_DIR"/VERSION.txt "$BUILD_DIR"/edit/tmp/
+sudo cp "$GIT_DIR"/CHANGES.txt "$BUILD_DIR"/edit/tmp/
+
+# Use the local working tree (including uncommitted changes) inside the
+# chroot instead of cloning from GitHub; bootstrap.sh then skips the clone.
+# The build directory must be excluded, it contains the chroot itself.
+sudo mkdir -p "$BUILD_DIR"/edit/usr/local/share/gisvm
+tar -C "$GIT_DIR" --exclude=./build --exclude="./$(basename "$BUILD_DIR")" -cf - . | \
+   sudo tar -C "$BUILD_DIR"/edit/usr/local/share/gisvm -xf -
 sudo chroot edit /bin/sh /tmp/inchroot.sh "$ARCH" "$BUILD_MODE" "$GIT_BRANCH" "$GIT_USER"
 
 #exit
@@ -197,7 +218,7 @@ sudo chroot edit /bin/sh /tmp/inchroot.sh "$ARCH" "$BUILD_MODE" "$GIT_BRANCH" "$
 echo
 echo "Finished chroot part"
 echo "======================================"
-cd "$BUILD_HOME"/livecdtmp
+cd "$BUILD_DIR"
 sudo umount edit/dev
 
 #Compress osgeolive build logs
@@ -233,8 +254,8 @@ unmkinitramfs initrd .
 # lz4 -dc ../initrd.lz4 | cpio -imvd --no-absolute-filenames
 
 #Perhaps not needed since this also happens in chroot part.
-cp ../../gisvm/desktop-conf/casper/casper.conf main/etc/casper.conf
-#cp ../../gisvm/desktop-conf/casper/27osgeo_groups scripts/casper-bottom/27osgeo_groups
+cp "$GIT_DIR"/desktop-conf/casper/casper.conf main/etc/casper.conf
+#cp "$GIT_DIR"/desktop-conf/casper/27osgeo_groups scripts/casper-bottom/27osgeo_groups
 #cat << EOF >> scripts/casper-bottom/ORDER
 #/scripts/casper-bottom/27osgeo_groups
 #[ -e /conf/param.conf ] && ./conf/param.conf
@@ -242,7 +263,7 @@ cp ../../gisvm/desktop-conf/casper/casper.conf main/etc/casper.conf
 
 mv main/scripts/casper-bottom/25adduser main/scripts/casper-bottom/25adduser.ORIG
 cat main/scripts/casper-bottom/25adduser.ORIG \
-    ../../gisvm/desktop-conf/casper/27osgeo_groups \
+    "$GIT_DIR"/desktop-conf/casper/27osgeo_groups \
   > main/scripts/casper-bottom/25adduser
 rm main/scripts/casper-bottom/25adduser.ORIG
 chmod a+x main/scripts/casper-bottom/25adduser
@@ -253,17 +274,17 @@ sed -i -e 's/U6aMy0wojraho/eLyJdzDtonrIc/g' main/scripts/casper-bottom/25adduser
 
 #Change the graphics on the lubuntu-logo plymouth loader both on lzfiles
 # and on edit folders
-cp ../../gisvm/desktop-conf/plymouth/lubuntu-logo/* \
+cp "$GIT_DIR"/desktop-conf/plymouth/lubuntu-logo/* \
     main/usr/share/plymouth/themes/lubuntu-logo/
 
-cp ../../gisvm/desktop-conf/plymouth/lubuntu-logo/* \
+cp "$GIT_DIR"/desktop-conf/plymouth/lubuntu-logo/* \
     ../edit/usr/share/plymouth/themes/lubuntu-logo/
 
 # Copy the watermark file into spinner folders
-cp ../../gisvm/desktop-conf/plymouth/lubuntu-logo/watermark.png \
+cp "$GIT_DIR"/desktop-conf/plymouth/lubuntu-logo/watermark.png \
     main/usr/share/plymouth/themes/lubuntu-logo/spinner/
 
-cp ../../gisvm/desktop-conf/plymouth/lubuntu-logo/watermark.png \
+cp "$GIT_DIR"/desktop-conf/plymouth/lubuntu-logo/watermark.png \
     ../edit/usr/share/plymouth/themes/lubuntu-logo/spinner/
 
 # Change the default spinner back to Ubuntu like
@@ -362,7 +383,7 @@ printf $(sudo du -sx --block-size=1 edit | cut -f1) > \
 chmod -w extract-cd/casper/filesystem.size
 
 #this is now compressed in squashfs so we delete to save VM disk space
-cd "$BUILD_HOME"/livecdtmp
+cd "$BUILD_DIR"
 sudo rm -rf edit
 
 #Set an image name in extract-cd/README.diskdefines
@@ -425,7 +446,7 @@ echo
 echo "Cleaning up..."
 echo "======================================"
 #Clear things up and prepare for next build
-cd "$BUILD_HOME"/livecdtmp
+cd "$BUILD_DIR"
 sudo rm -rf extract-cd
 sudo umount mnt
 sudo rm -rf mnt
