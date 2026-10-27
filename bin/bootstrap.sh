@@ -21,7 +21,7 @@
 # web page "http://www.fsf.org/licenses/lgpl.html".
 #############################################################################
 # Usage:
-# sudo ./boostrap.sh [git_branch (default=master)] [GitHub_username (default=OSGeo)]
+# sudo ./boostrap.sh [git_branch (default=master)] [GitHub_username (default=gislars)]
 #############################################################################
 
 SCRIPT_DIR=/usr/local/share
@@ -44,15 +44,15 @@ fi
 USER_HOME=`getent passwd "$USER_NAME" | cut -d: -f6`
 
 # Parse arguments to be able to build specific branch from specific git repository.
-# Defaults to master branch and official OSGeo git repository.
+# Defaults to master branch of the FOSSGIS fork (gislars/OSGeoLive).
 if [ "$#" -eq 2 ]; then
     GIT_USER="$2"
     GIT_BRANCH="$1"
 elif [ "$#" -eq 1 ]; then
-    GIT_USER="OSGeo"
+    GIT_USER="gislars"
     GIT_BRANCH="$1"
 else
-    GIT_USER="OSGeo"
+    GIT_USER="gislars"
     GIT_BRANCH="master"
 fi
 

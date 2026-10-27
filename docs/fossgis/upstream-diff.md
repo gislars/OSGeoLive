@@ -62,6 +62,16 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** upstream-tauglich (zusammen mit dem Eintrag oben)
 - **Merge:** `fix/build-copy-tracked-only`
 
+### Vorgabe-Repository ist der Fork
+
+- **Dateien:** `bin/build_chroot.sh`, `bin/inchroot.sh`, `bin/bootstrap.sh`
+- **Was:** Ohne Angabe eines GitHub-Benutzers gilt `gislars` statt `OSGeo`, also
+  `https://github.com/gislars/OSGeoLive.git`. Die Usage-Texte nennen die neue Vorgabe.
+- **Warum:** Wird `bootstrap.sh` außerhalb des lokalen Builds aufgerufen, etwa in
+  einer VM, soll es die FOSSGIS-Edition klonen und nicht OSGeo.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `chore/fork-defaults`
+
 ## Repository und Werkzeuge
 
 ### `.gitignore`
