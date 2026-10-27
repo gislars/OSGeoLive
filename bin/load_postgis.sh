@@ -51,7 +51,12 @@ cd "$TMP_DIR"
 ##  File name will change from time to time.
 
 #CITY=""
-OSM_FILE="/usr/local/share/data/osm/feature_city.osm.bz2"
+# FOSSGIS prefers the PBF extract; fall back to the upstream bz2 link
+if [ -e /usr/local/share/data/osm/feature_city.osm.pbf ] ; then
+   OSM_FILE="/usr/local/share/data/osm/feature_city.osm.pbf"
+else
+   OSM_FILE="/usr/local/share/data/osm/feature_city.osm.bz2"
+fi
 
 # download package is not versioned so we really shouldn't use "wget -c"
 #wget -c --progress=dot:mega "$URL_BASE/$DL_FILE"
@@ -100,10 +105,14 @@ if [ ! -e "$OSM_FILE" ] ; then
     exit 1
 fi
 
-# lat/lon
+# Flex output with SRID 4326 (replaces deprecated pgsql --latlong / default.style)
+FLEX_STYLE="$BUILD_DIR/../app-conf/osm2pgsql/osgeolive.lua"
+if [ ! -f "$FLEX_STYLE" ] ; then
+   FLEX_STYLE="/usr/local/share/gisvm/app-conf/osm2pgsql/osgeolive.lua"
+fi
 sudo -u $POSTGRES_USER osm2pgsql -U $POSTGRES_USER \
-     --database osm_local --latlong \
-     --style /usr/share/osm2pgsql/default.style \
+     --database osm_local \
+     --output=flex --style "$FLEX_STYLE" \
      "$OSM_FILE"
 
 sudo -u $POSTGRES_USER psql osm_local \

@@ -89,9 +89,16 @@ chmod a+x "$USER_HOME"/Desktop/josm.desktop
 mkdir -p /usr/local/share/applications
 
 
-MAP_CENTER="lat=-36.853567&lon=174.766353"
-MARKER="mlat=-36.853567&mlon=174.766353"
-ZOOM="16"
+# FOSSGIS edition settings (MAP_*); fall back to Auckland for plain upstream
+if [ -n "${MAP_LAT:-}" ] && [ -n "${MAP_LON:-}" ] ; then
+   MAP_CENTER="lat=${MAP_LAT}&lon=${MAP_LON}"
+   MARKER="mlat=${MAP_LAT}&mlon=${MAP_LON}"
+   ZOOM="${MAP_ZOOM:-16}"
+else
+   MAP_CENTER="lat=-36.853567&lon=174.766353"
+   MARKER="mlat=-36.853567&mlon=174.766353"
+   ZOOM="16"
+fi
 
 cat << EOF > /usr/local/share/applications/osm_online.desktop
 [Desktop Entry]
@@ -109,72 +116,50 @@ chmod a+x /usr/local/share/applications/osm_online.desktop
 cp /usr/local/share/applications/osm_online.desktop "$USER_HOME/Desktop/"
 
 #########################################################################
-#### install sample OSM data
-## http://download.osgeo.org/livedvd/16/osm/Prizren_XK.osm.bz2
+#### install sample OSM data (FOSSGIS: PBF from prepare_data.sh)
 
-CITY="AUCKLAND_NZ"
-#         w    s        e        n
-## 36°50′57″S 174°45′55″E (approx: -36.849167, 174.765278)
-## Centered on FOSS4G show location: -36.853567, 174.766353
-BBOX="174.75, -36.87, 174.78, -36.84"
-
-#
-# City OSM data:
-#  Having a sample .osm file around will benefit many applications. In addition
-#  to JOSM and Gosmore, QGIS and Mapnik can also render .osm directly.
-#
-# We should also push the .osm file into postgis/postgres with osm2pgsql.
-#   todo: perhaps try 'imposm' instead:
-#         http://imposm.org/docs/imposm/latest/
-#
-# $ createdb -T template_postgis osm_$CITY
-# $ osm2pgsql -d osm_$CITY $CITY.osm
-#
-
-### Please update to latest data at the last minute! See data dir on server for details.
-wget -N --progress=dot:mega \
-   "https://download.osgeo.org/livedvd/data/osm/$CITY/$CITY.osm.bz2"
+mkdir -p /usr/local/share/osm /usr/local/share/data/osm
 
 wget -c --tries=3 --progress=dot:mega \
    -O /usr/local/share/osm/sample.osm \
    "https://learnosm.org/files/sample.osm"
 
-#download as part of disc build process
-# Downloading from the osmxapi takes me about 6 minutes and is around 20MB.
-# hypercube is near the OSGeo servers at SDSC so should be much faster.
-
-# Xapi is dying,
-#   http://thread.gmane.org/gmane.comp.gis.openstreetmap/56097/
-# long live Xapi,
-#   https://github.com/iandees/xapi-servlet
-# for our simple "planet extract" needs, maybe OSM3S would be a better fit anyway?
-#   http://wiki.openstreetmap.org/wiki/OSM3S/install
-#   http://www.overpass-api.de/
-
-if [ ! -e "$CITY.osm.bz2" ] ; then
-  #XAPI_URL="http://xapi.openstreetmap.org/api/0.6/"
-  #XAPI_URL="http://open.mapquestapi.com/xapi/api/0.6/"
-  #XAPI_URL="http://jxapi.openstreetmap.org/xapi/api/0.6/"
-  # Overpass server with Xapi compatibility layer
-  XAPI_URL="http://www.overpass-api.de/api/xapi?"
-  # needed for Overpass server:
-  XAPI_EXTRA="[@meta]"
-
-  wget --progress=dot:mega -O "$CITY.osm" \
-       "${XAPI_URL}*[bbox=$BBOX]$XAPI_EXTRA"
-  if [ $? -ne 0 ] ; then
-     echo "ERROR getting osm data"
-     exit 1
-  fi
-  bzip2 "$CITY.osm"
+# Prepared city extract: local/data/osm/<MAP_CITY>.osm.pbf via fossgis-local
+FOSSGIS_OSM_DIR="${FOSSGIS_DIR:-/usr/local/share/gisvm/fossgis-local}/data/osm"
+CITY="${MAP_CITY:-}"
+CITY_PBF=""
+if [ -n "$CITY" ] && [ -f "$FOSSGIS_OSM_DIR/${CITY}.osm.pbf" ] ; then
+   CITY_PBF="$FOSSGIS_OSM_DIR/${CITY}.osm.pbf"
 fi
 
-
-cp -f "$CITY.osm.bz2" /usr/local/share/osm/
-mkdir -p /usr/local/share/data/osm --verbose
-ln -s /usr/local/share/osm/"$CITY.osm.bz2" /usr/local/share/data/osm/
-ln -s /usr/local/share/data/osm/"$CITY.osm.bz2" \
-   /usr/local/share/data/osm/feature_city.osm.bz2
+if [ -n "$CITY_PBF" ] ; then
+   echo "FOSSGIS: installing OSM extract $CITY_PBF"
+   cp -f "$CITY_PBF" /usr/local/share/osm/"$CITY.osm.pbf"
+   ln -sfn /usr/local/share/osm/"$CITY.osm.pbf" \
+      /usr/local/share/data/osm/"$CITY.osm.pbf"
+   ln -sfn /usr/local/share/data/osm/"$CITY.osm.pbf" \
+      /usr/local/share/data/osm/feature_city.osm.pbf
+else
+   # Upstream fallback (Auckland bz2) when no FOSSGIS extract is present
+   CITY="AUCKLAND_NZ"
+   BBOX="174.75, -36.87, 174.78, -36.84"
+   wget -N --progress=dot:mega \
+      "https://download.osgeo.org/livedvd/data/osm/$CITY/$CITY.osm.bz2"
+   if [ ! -e "$CITY.osm.bz2" ] ; then
+      XAPI_URL="http://www.overpass-api.de/api/xapi?"
+      XAPI_EXTRA="[@meta]"
+      wget --progress=dot:mega -O "$CITY.osm" \
+         "${XAPI_URL}*[bbox=$BBOX]$XAPI_EXTRA" || {
+         echo "ERROR getting osm data"
+         exit 1
+      }
+      bzip2 "$CITY.osm"
+   fi
+   cp -f "$CITY.osm.bz2" /usr/local/share/osm/
+   ln -sfn /usr/local/share/osm/"$CITY.osm.bz2" /usr/local/share/data/osm/
+   ln -sfn /usr/local/share/data/osm/"$CITY.osm.bz2" \
+      /usr/local/share/data/osm/feature_city.osm.bz2
+fi
 
 ####
 # Smaller extract for pgRouting examples

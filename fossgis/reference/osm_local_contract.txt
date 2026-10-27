@@ -1,0 +1,17 @@
+# Minimum schema contract for osm_local (FOSSGIS 2027)
+# Checked against tegola, QGIS OpenStreetMap connection, postgis FDW quickstart.
+# Geometry column: way, SRID 4326. Prefix: planet_osm.
+
+table	column	type	notes
+planet_osm_point	osm_id	bigint
+planet_osm_point	name	text
+planet_osm_point	way	geometry(Point,4326)
+planet_osm_line	osm_id	bigint
+planet_osm_line	name	text
+planet_osm_line	way	geometry(LineString,4326)
+planet_osm_roads	osm_id	bigint
+planet_osm_roads	name	text
+planet_osm_roads	way	geometry(LineString,4326)
+planet_osm_polygon	osm_id	bigint
+planet_osm_polygon	name	text
+planet_osm_polygon	way	geometry(Geometry,4326)

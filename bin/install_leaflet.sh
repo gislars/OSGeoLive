@@ -45,14 +45,37 @@ rm -rf "$TMP_MC"
 ln -s /usr/share/javascript/leaflet/ /var/www/html/leaflet
 ln -sfn "$MC_DEST" /var/www/html/leaflet-markercluster
 
+# map_location.js for leaflet-demo from FOSSGIS edition.conf (exported by load_edition.sh)
+MAP_LAT="${MAP_LAT:--36.853567}"
+MAP_LON="${MAP_LON:-174.766353}"
+MAP_ZOOM="${MAP_ZOOM:-16}"
+MAP_LEAFLET_POLYGON="${MAP_LEAFLET_POLYGON:-}"
+POLY_JS=""
+for p in $MAP_LEAFLET_POLYGON; do
+   [ -n "$POLY_JS" ] && POLY_JS="$POLY_JS,"
+   POLY_JS="${POLY_JS}[$p]"
+done
+{
+   echo "// from fossgis edition settings"
+   echo "var MAP_LAT = $MAP_LAT;"
+   echo "var MAP_LON = $MAP_LON;"
+   echo "var MAP_ZOOM = $MAP_ZOOM;"
+   echo "var MAP_LEAFLET_POLYGON = [$POLY_JS];"
+} > /var/www/html/map_location.js
+
 #add demo file
 cp -f ../app-conf/leaflet/leaflet-demo.html /var/www/html/
 
 
 ### install desktop icons ##
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+LEAFLET_ICON_SRC="${SCRIPT_DIR}/../app-conf/leaflet/leafletjs_logo.png"
 echo "Installing Leaflet icon"
-cp -f "$USER_HOME/gisvm/app-conf/leaflet/leafletjs_logo.png" \
-       /usr/share/icons/
+if [ -f "$LEAFLET_ICON_SRC" ] ; then
+   cp -f "$LEAFLET_ICON_SRC" /usr/share/icons/leafletjs_logo.png
+else
+   echo "Note: Leaflet icon missing at $LEAFLET_ICON_SRC"
+fi
 
 ## start icon
 cat << EOF > /usr/share/applications/leaflet.desktop
