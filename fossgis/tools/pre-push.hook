@@ -1,0 +1,43 @@
+#!/bin/sh
+#############################################################################
+#
+# Purpose: Local pre-push guard for the FOSSGIS fork.
+#          Pushes go only to the gislars forks, only with explicit approval
+#          (FOSSGIS_PUSH_APPROVED=1 for the one approved command) and only
+#          if fossgis/tools/check_clean.sh passes for every pushed ref.
+#
+# Install: install -m 755 fossgis/tools/pre-push.hook .git/hooks/pre-push
+#
+#############################################################################
+
+remote="$1"
+url="$2"
+
+case "$url" in
+    git@github.com:gislars/*|https://github.com/gislars/*) ;;
+    *)
+        echo "pre-push: push target '$url' ($remote) is not a gislars fork, aborting." >&2
+        exit 1
+        ;;
+esac
+
+if [ "$FOSSGIS_PUSH_APPROVED" != "1" ] ; then
+    echo "pre-push: push not approved (FOSSGIS_PUSH_APPROVED=1 missing), aborting." >&2
+    exit 1
+fi
+
+# check_clean.sh from the main checkout, also when pushing from a worktree
+top=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+check="$top/fossgis/tools/check_clean.sh"
+if [ ! -x "$check" ] ; then
+    echo "pre-push: $check not found, aborting." >&2
+    exit 1
+fi
+
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha ; do
+    [ "$local_sha" = "$zero" ] && continue
+    echo "pre-push: checking $local_ref -> $remote_ref"
+    "$check" --push "$remote_ref" "$local_sha" "$remote_sha" || exit 1
+done
+exit 0

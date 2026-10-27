@@ -1,0 +1,5 @@
+# Files between 10 MB and 100 MB that may be committed (exact paths).
+# FOSSGIS 2026 archive (fossgis2026)
+app-data/qgis/qgis3-osgeolive17-plugins-updated.zip
+desktop-conf/fossgis2026-desktop.xcf
+goettingen.osm.bz2
