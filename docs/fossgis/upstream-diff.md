@@ -306,17 +306,23 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 
 - **Dateien:** `fossgis/tools/builder_vm.sh`, `fossgis/tools/host_guard.sh`,
   `fossgis/tools/check_clean.allow`, `AGENTS.md`, `docs/fossgis/README.md`,
-  `docs/fossgis/build-safety.md`
+  `docs/fossgis/build-safety.md`, `bin/build_chroot.sh`,
+  `fossgis/tools/tests/test_build_safety.sh`
 - **Was:** `builder_vm.sh` startet eine QEMU/KVM-VM ohne gemeinsame Verzeichnisse mit
   dem Host, schickt den committeten Stand als Git-Bundle und `local/` per rsync,
   startet den Build in der VM und holt ISO, Log und neue Cache-Dateien zurück.
   Verbindungen der VM zum Host (10.0.2.2) werden verworfen. `host_guard.sh`
-  vergleicht vor und nach dem Build `/dev`, Mounts und freien Platz auf dem Host.
+  vergleicht vor und nach dem Build `/dev`, Mounts und freien Platz auf dem Host;
+  Hotplug-Knoten (Input, Sound, USB) bleiben beim Vergleich unberücksichtigt.
+  Default-RAM der VM ist 32G. DNS: öffentliche Resolver, Stub-Listener aus;
+  im Chroot feste `resolv.conf` und `systemd-nspawn --resolv-conf=off` (sonst
+  legt nspawn `127.0.0.53` wieder über die Datei und apt scheitert unter Last).
   `AGENTS.md` verbietet Builds direkt auf dem Host.
 - **Warum:** Der Build braucht root; Fehler im Chroot dürfen den Build-Rechner nicht
-  mehr erreichen können.
+  mehr erreichen können. QEMU-User-Networking und Headset-Hotplug dürfen den
+  Guard bzw. den Build nicht falsch scheitern lassen.
 - **Einordnung:** FOSSGIS-spezifisch
-- **Merge:** `chore/builder-vm`
+- **Merge:** `chore/builder-vm`, Nacharbeit `fix/gis-stack-verify`
 
 ### Log-Wächter für kritische Build-Meldungen
 
@@ -337,22 +343,28 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 ### QGIS 4.2 von qgis.org, GRASS 8.4 und ein GDAL
 
 - **Dateien:** `bin/setup.sh`, `bin/install_qgis.sh`, `bin/install_grass.sh`,
-  `bin/check_gis_stack.sh`, `bin/inchroot.sh`, `sources.list.d/qgis.sources`,
-  `app-conf/apt/qgis-pin.pref`, `app-conf/apt/keyrings/qgis-archive-keyring.gpg`,
+  `bin/check_gis_stack.sh`, `bin/inchroot.sh`, `bin/base_python.sh`,
+  `sources.list.d/qgis.sources`, `app-conf/apt/qgis-pin.pref`,
+  `app-conf/apt/keyrings/qgis-archive-keyring.gpg`,
   `fossgis/tools/build_qgis_plugins_zip.py`
 - **Was:** QGIS 4.2 kommt von `qgis.org/debian resolute` (Keyring und Pinning gegen
-  Ubuntu-Universe mit QGIS 3.x). Installiert werden `qgis`, `python3-qgis`,
-  `qgis-plugin-grass` (und `qgis-server` weiter in `install_qgis_server.sh`).
-  GRASS 8.4 aus Ubuntu ohne `libgdal-grass` (Paket fehlt); Desktop-Datei wird
-  dynamisch ermittelt. `check_gis_stack.sh` bricht den Build ab, wenn GDAL nicht
-  3.12.x, GRASS nicht 8.4, QGIS nicht 4.2 oder mehr als eine `libgdal*` in den
-  Abhängigkeiten vorkommt, und prüft `ldd` am GRASS-Plugin. Plugin-ZIP für QGIS 4
-  liegt in `local/data/qgis/` (nicht im Repo).
+  Ubuntu-Universe mit QGIS 3.x; Pin nach `o=QGIS project`, nicht nach Hostname,
+  weil Redirects die Origin-Zeile brechen). Installiert werden `qgis`,
+  `python3-qgis`, `qgis-plugin-grass` (und `qgis-server` weiter in
+  `install_qgis_server.sh`). GRASS 8.4 aus Ubuntu ohne `libgdal-grass` (Paket
+  fehlt); Desktop-Datei wird dynamisch ermittelt. Teilbuilds mit
+  `local/inchroot.list` brechen beim ersten fehlgeschlagenen Schritt ab.
+  `check_gis_stack.sh` bricht den Build ab, wenn GDAL nicht 3.12.x, GRASS nicht
+  8.4, QGIS nicht 4.2 oder mehr als eine `libgdal*` in den Abhängigkeiten
+  vorkommt, und prüft `ldd` am GRASS-Plugin; Versionen kommen robust aus
+  Paketmetadaten bzw. `grass --config version` (nicht nur aus Banner-Zeilen).
+  Plugin-ZIP für QGIS 4 liegt in `local/data/qgis/` (nicht im Repo).
 - **Warum:** Ein einheitlicher Stack ohne UbuntuGIS-PPA; QGIS 4 ist gegen
-  `libgdal38` und `grass842` gebaut.
+  `libgdal38` und `grass842` gebaut. Falsch-grüne Teilbuilds und flaky DNS
+  im Chroot dürfen den Stack nicht als fertig melden.
 - **Einordnung:** upstream-tauglich (QGIS-Quelle und Prüfskript); Plugin-ZIP und
   Pinning FOSSGIS-spezifisch
-- **Merge:** `build/gis-stack`
+- **Merge:** `build/gis-stack`, Nacharbeit `fix/gis-stack-verify`
 
 ## Hinweise
 

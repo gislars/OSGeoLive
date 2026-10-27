@@ -374,9 +374,22 @@ fi
 echo
 echo "Setting up network for chroot"
 echo "======================================"
-#If you need the network connection within chroot 
-sudo cp /etc/resolv.conf edit/etc/
+# Public DNS for the build only. The host stub (127.0.0.53) and QEMU's
+# built-in DNS (10.0.2.3) flake under apt load ("Temporary failure
+# resolving"). Remove any Lubuntu symlink first so tee writes a real file.
+# systemd-nspawn must use --resolv-conf=off below, otherwise "auto" copies
+# the stub back over this file. inchroot.sh restores the stub for the ISO.
+sudo rm -f edit/etc/resolv.conf
+printf '%s\n' \
+   'nameserver 1.1.1.1' \
+   'nameserver 8.8.8.8' \
+   'options timeout:2 attempts:5' | sudo tee edit/etc/resolv.conf > /dev/null
 sudo cp /etc/hosts edit/etc/
+sudo mkdir -p edit/etc/apt/apt.conf.d
+printf '%s\n' \
+   'Acquire::ForceIPv4 "true";' \
+   'Acquire::Retries "5";' | \
+   sudo tee edit/etc/apt/apt.conf.d/99fossgis-network > /dev/null
 
 # Do not bind-mount the host's /dev into edit/. A busy umount plus rm -rf
 # once wiped the build host's device nodes. systemd-nspawn gives the build
@@ -482,12 +495,15 @@ fi
 
 # Private /dev, own mounts; share the host network for apt. When the command
 # exits, systemd-nspawn stops every process left in the container.
+# --resolv-conf=off: keep the public DNS file written above; "auto" would
+# replace it with the host stub resolver and break apt under QEMU.
 # shellcheck disable=SC2086
 if ! sudo systemd-nspawn \
       --directory="$BUILD_DIR/edit" \
       --machine="fossgis-build-$$" \
       --register=no \
       --network-namespace-path=/proc/1/ns/net \
+      --resolv-conf=off \
       --setenv=FOSSGIS_NSPAWN=1 \
       $NSPAWN_BINDS \
       /bin/sh /usr/local/share/gisvm/bin/inchroot.sh \

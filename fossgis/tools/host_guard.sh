@@ -11,8 +11,13 @@
 #
 # Device nodes that disappear, a /dev/null that is no character device,
 # mounts that appear or disappear and free space below HOST_GUARD_MIN_FREE_GB
-# (default 20) count as deviations. Unplugging a USB device between snapshot
-# and check is reported as well; the message says which entry is missing.
+# (default 20) count as deviations.
+#
+# Hotplug nodes are ignored in the /dev comparison so a Bluetooth headset,
+# USB stick or similar can come and go while a long build runs:
+#   /dev/input/*, /dev/hidraw*, /dev/snd/*, /dev/bus/usb/*,
+#   /dev/char/13:* (input), /dev/char/116:* (ALSA), /dev/char/189:* (USB).
+# Mass loss of /dev still fails: /dev/null and the remaining nodes are checked.
 #
 #############################################################################
 
@@ -36,6 +41,12 @@ state() {
    findmnt -rn -o TARGET,FSTYPE | sort
 }
 
+# Drop lines for device classes that appear and disappear during normal use.
+# Input format: "<type> <path>" from find -printf '%y %p\n'.
+filter_hotplug_dev() {
+   grep -Ev ' /dev/(input/|hidraw|snd/|bus/usb/|char/(13|116|189):)' || true
+}
+
 free_gb() {
    df -P -B1G "$PROJECT_DIR" | awk 'NR == 2 {print $4}'
 }
@@ -57,8 +68,8 @@ case "$MODE" in
       section() {
          sed -n "/^## $1\$/,/^## /p" "$2" | grep -v '^## ' | sort
       }
-      section dev "$FILE" > "$NOW.dev.old"
-      section dev "$NOW" > "$NOW.dev.new"
+      section dev "$FILE" | filter_hotplug_dev > "$NOW.dev.old"
+      section dev "$NOW" | filter_hotplug_dev > "$NOW.dev.new"
       section mounts "$FILE" > "$NOW.mnt.old"
       section mounts "$NOW" > "$NOW.mnt.new"
       MISSING_DEV=`comm -23 "$NOW.dev.old" "$NOW.dev.new"`

@@ -87,7 +87,8 @@ ISO, Log und neue Dateien für `local/cache/`. Verbindungen der VM zum Host
 (10.0.2.2) werden in der VM verworfen, ssh lauscht nur auf 127.0.0.1. CPU,
 Arbeitsspeicher und Plattengröße der VM sind begrenzt, vor dem Start und vor dem
 Zurückkopieren wird der freie Platz geprüft. `host_guard.sh` vergleicht vor und nach
-jedem Build `/dev`, Mounts und freien Platz auf dem Host.
+jedem Build `/dev`, Mounts und freien Platz auf dem Host; Hotplug-Knoten
+(Input, Sound, USB) bleiben beim `/dev`-Vergleich unberücksichtigt.
 
 Die übrigen Maßnahmen schützen innerhalb der VM davor, dass ein fehlerhafter Build
 als grün gilt.
@@ -99,7 +100,7 @@ als grün gilt.
 | `remove_chroot`: aushängen, prüfen, `rm -rf --one-file-system` | auf `master`, im VM-Teilbuild genutzt |
 | belegtes `edit/dev`: lazy aushängen; Prozesse im Chroot brechen den Build ab | auf `master`, getestet: Teilbuild ohne `setdown.sh` -> `exit=1` vor dem Packen (Log 20261027-151552) |
 | Abbruch vor `mksquashfs`, wenn unter `edit/` etwas eingehängt ist | auf `master` |
-| Chroot-Teil in `systemd-nspawn` (eigenes `/dev`, eigene Mounts, alle Prozesse enden mit dem Container) | auf `master`; VM installiert `systemd-container` bei Bedarf; noch kein VM-Live-Build damit |
+| Chroot-Teil in `systemd-nspawn` (eigenes `/dev`, eigene Mounts, alle Prozesse enden mit dem Container) | auf `master`; VM installiert `systemd-container` bei Bedarf; `--resolv-conf=off` plus öffentliche DNS im Chroot (QEMU-Stub bricht unter apt-Last) |
 | `mksquashfs -one-file-system`, gescheitertes `umount` bricht ab | auf `master`, Log-Muster gegen alte Vorfall-Logs geprüft |
 | Log-Wächter: kritische Meldungen machen den Build rot, `record_full_build.sh` lehnt ab | auf `master`, Muster gegen Log 20261027-141554 geprüft |
 | `fossgis/tools/tests/test_build_safety.sh` mit einer Attrappe statt `/dev`: belegter Mount, `mksquashfs` über Mount-Grenzen, `rm --one-file-system`; statischer Teil in `check_clean` | auf `master`, `--runtime` grün 27.10.2026 |
