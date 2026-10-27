@@ -205,12 +205,32 @@ sudo cp "$DIR"/bootstrap.sh "$BUILD_DIR"/edit/tmp/
 sudo cp "$GIT_DIR"/VERSION.txt "$BUILD_DIR"/edit/tmp/
 sudo cp "$GIT_DIR"/CHANGES.txt "$BUILD_DIR"/edit/tmp/
 
-# Use the local working tree (including uncommitted changes) inside the
-# chroot instead of cloning from GitHub; bootstrap.sh then skips the clone.
-# The build directory must be excluded, it contains the chroot itself.
-sudo mkdir -p "$BUILD_DIR"/edit/usr/local/share/gisvm
-tar -C "$GIT_DIR" --exclude=./build --exclude="./$(basename "$BUILD_DIR")" -cf - . | \
-   sudo tar -C "$BUILD_DIR"/edit/usr/local/share/gisvm -xf -
+# Use the local working tree inside the chroot instead of cloning from
+# GitHub; bootstrap.sh then skips the clone. Only tracked files and
+# untracked files not covered by .gitignore are copied, so local data,
+# secrets and the build directory never end up in the image.
+GISVM_COPY="$BUILD_DIR"/edit/usr/local/share/gisvm
+sudo mkdir -p "$GISVM_COPY"
+git -C "$GIT_DIR" ls-files -z --cached --others --exclude-standard | \
+   tar -C "$GIT_DIR" --null --ignore-failed-read -T - -cf - | \
+   sudo tar -C "$GISVM_COPY" -xf -
+if [ ! -f "$GISVM_COPY"/VERSION.txt ] ; then
+   echo "ERROR: copying the source checkout into the chroot failed." >&2
+   exit 1
+fi
+for FORBIDDEN in osgeolive_old local osgeolive-doc local.env build ; do
+   if [ -e "$GISVM_COPY/$FORBIDDEN" ] ; then
+      echo "ERROR: '$FORBIDDEN' must not be copied into the chroot, add it to .gitignore." >&2
+      exit 1
+   fi
+done
+LEAKED=`sudo find "$GISVM_COPY" \( -name '*.nmconnection' -o -name '*.pbf' \
+   -o -name '*.iso' \) -print`
+if [ -n "$LEAKED" ] ; then
+   echo "ERROR: files not allowed in the chroot copy:" >&2
+   echo "$LEAKED" >&2
+   exit 1
+fi
 sudo chroot edit /bin/sh /tmp/inchroot.sh "$ARCH" "$BUILD_MODE" "$GIT_BRANCH" "$GIT_USER"
 
 #exit
