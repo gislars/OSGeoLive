@@ -118,6 +118,23 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** Teilbuild upstream-tauglich, Edition und `local/` FOSSGIS-spezifisch
 - **Merge:** `chore/fossgis-layout`
 
+### Lokaler Download-Cache
+
+- **Dateien:** `bin/build_chroot.sh`, `bin/setdown.sh`, `bin/inchroot.sh`,
+  `fossgis/tools/wget_cache.sh`, `fossgis/local.env.example`, `docs/fossgis/README.md`
+- **Was:** `build_chroot.sh` hängt `local/cache/apt` als `/var/cache/apt/archives` und
+  `local/cache/downloads` als `/var/cache/fossgis-downloads` in den Chroot und legt
+  `wget_cache.sh` als `/usr/local/bin/wget` ab. Der Wrapper liefert bekannte
+  Downloads aus dem Cache und speichert neue. `setdown.sh` hängt beides vor
+  `apt-get clean` aus und entfernt den Wrapper; `inchroot.sh` tut dasselbe vor dem
+  abschließenden `apt-get clean`, weil ein Teilbuild `setdown.sh` nicht ausführt.
+  `build_chroot.sh` prüft das vor dem Packen und hängt alte Mounts vor
+  `rm -rf edit` aus.
+- **Warum:** Viele Builds pro Edition; ohne Cache lädt jeder Lauf mehrere GB von
+  denselben Quellen.
+- **Einordnung:** upstream-tauglich
+- **Merge:** `feature/build-cache`
+
 ## Repository und Werkzeuge
 
 ### `.gitignore`

@@ -118,9 +118,17 @@ echo "Start Building $ISO_NAME"
 echo "==============================================================="
 
 #Some initial cleaning, including leftovers of an aborted previous build
-for MOUNTPOINT in edit/dev edit/dev/pts edit/proc edit/sys mnt ; do
+# The cache mounts come first, rm -rf edit would otherwise empty the cache
+for MOUNTPOINT in edit/var/cache/apt/archives edit/var/cache/fossgis-downloads \
+      edit/dev edit/dev/pts edit/proc edit/sys mnt ; do
     if mountpoint -q "$BUILD_DIR/$MOUNTPOINT" 2>/dev/null ; then
         sudo umount -l "$BUILD_DIR/$MOUNTPOINT"
+    fi
+done
+for MOUNTPOINT in edit/var/cache/apt/archives edit/var/cache/fossgis-downloads ; do
+    if mountpoint -q "$BUILD_DIR/$MOUNTPOINT" 2>/dev/null ; then
+        echo "ERROR: $BUILD_DIR/$MOUNTPOINT is still mounted, not deleting edit/." >&2
+        exit 1
     fi
 done
 rm -rf "$BUILD_DIR"/edit
@@ -277,6 +285,36 @@ if [ -f "$FOSSGIS_TMP"/local.env ] ; then
    sudo chmod 600 "$FOSSGIS_TMP"/local.env
 fi
 
+# Local download cache, kept between builds: apt packages and the wget
+# downloads of the install scripts (fossgis/tools/wget_cache.sh). Disable
+# with FOSSGIS_CACHE="0" in local/local.env.
+local_env_value() {
+   [ -f "$FOSSGIS_LOCAL_DIR/local.env" ] && \
+      sed -n -E "s/^[[:space:]]*$1=[\"']?([^\"']*)[\"']?[[:space:]]*$/\1/p" \
+      "$FOSSGIS_LOCAL_DIR/local.env" | tail -n 1
+}
+FOSSGIS_CACHE=`local_env_value FOSSGIS_CACHE`
+FOSSGIS_CACHE_DIR=`local_env_value FOSSGIS_CACHE_DIR`
+if [ -z "$FOSSGIS_CACHE_DIR" ] ; then
+   FOSSGIS_CACHE_DIR="$FOSSGIS_LOCAL_DIR/cache"
+fi
+WGET_WRAPPER_MARK="FOSSGIS wget cache wrapper"
+if [ "$FOSSGIS_CACHE" != "0" ] ; then
+   echo "FOSSGIS: download cache in $FOSSGIS_CACHE_DIR"
+   for CACHE_SUBDIR in "$FOSSGIS_LOCAL_DIR" "$FOSSGIS_CACHE_DIR" \
+         "$FOSSGIS_CACHE_DIR"/apt "$FOSSGIS_CACHE_DIR"/downloads ; do
+      if [ ! -d "$CACHE_SUBDIR" ] ; then
+         mkdir -p "$CACHE_SUBDIR"
+         [ -n "$SUDO_USER" ] && chown "$SUDO_USER": "$CACHE_SUBDIR"
+      fi
+   done
+   mkdir -p "$FOSSGIS_CACHE_DIR"/apt/partial
+   sudo mkdir -p edit/var/cache/apt/archives edit/var/cache/fossgis-downloads
+   sudo mount --bind "$FOSSGIS_CACHE_DIR"/apt edit/var/cache/apt/archives
+   sudo mount --bind "$FOSSGIS_CACHE_DIR"/downloads edit/var/cache/fossgis-downloads
+   sudo install -m 755 "$GIT_DIR"/fossgis/tools/wget_cache.sh edit/usr/local/bin/wget
+fi
+
 sudo chroot edit /bin/sh /tmp/inchroot.sh "$ARCH" "$BUILD_MODE" "$GIT_BRANCH" "$GIT_USER"
 
 #exit
@@ -286,6 +324,24 @@ echo "Finished chroot part"
 echo "======================================"
 cd "$BUILD_DIR"
 sudo umount edit/dev
+
+# Detach the cache before the chroot is packed, normally setdown.sh did it
+for MOUNTPOINT in edit/var/cache/apt/archives edit/var/cache/fossgis-downloads ; do
+   if mountpoint -q "$MOUNTPOINT" ; then
+      sudo umount "$MOUNTPOINT" || sudo umount -l "$MOUNTPOINT"
+   fi
+   if mountpoint -q "$MOUNTPOINT" ; then
+      echo "ERROR: $MOUNTPOINT is still mounted, the cache would end up in the image." >&2
+      exit 1
+   fi
+done
+sudo rmdir edit/var/cache/fossgis-downloads 2>/dev/null
+if grep -q "$WGET_WRAPPER_MARK" edit/usr/local/bin/wget 2>/dev/null ; then
+   sudo rm -f edit/usr/local/bin/wget
+fi
+if [ -d "$FOSSGIS_CACHE_DIR" ] && [ -n "$SUDO_USER" ] ; then
+   sudo chown -R "$SUDO_USER": "$FOSSGIS_CACHE_DIR"
+fi
 
 #Compress osgeolive build logs
 #tar czf osgeo-live-${VERSION}-log.tar.gz -C edit/var/log osgeolive
