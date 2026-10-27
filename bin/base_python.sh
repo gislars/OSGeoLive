@@ -39,14 +39,15 @@ apt-get install --yes python3-gdal python3-shapely python3-rasterio rasterio \
     python3-cartopy python3-folium python3-pystac python3-pystac-client \
     python3-owslib python3-rioxarray
 
-# mappyfile is not packaged for Ubuntu 26.04 (it came from the OSGeoLive PPA),
-# its dependencies are, so only mappyfile itself comes from PyPI
+# mappyfile is not packaged for Ubuntu 26.04 (it came from the OSGeoLive PPA).
 MAPPYFILE_VERSION="1.2.0"
 apt-get install --yes python3-pip python3-lark python3-jsonschema python3-click
-if ! pip3 install --no-deps --break-system-packages "mappyfile==$MAPPYFILE_VERSION" ; then
+. "$BUILD_DIR/tools/osgeolive_venv.sh"
+if ! osgeolive_venv_pip "mappyfile==$MAPPYFILE_VERSION" ; then
    echo "ERROR: pip install mappyfile==$MAPPYFILE_VERSION failed" >&2
    exit 1
 fi
+ln -sfn "`osgeolive_venv_bin mappyfile`" /usr/local/bin/mappyfile 2>/dev/null || true
 
 # Add a symlink for rio
 ln -s /usr/bin/rasterio /usr/local/bin/rio

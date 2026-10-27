@@ -1,11 +1,11 @@
 #!/bin/sh
 #############################################################################
 #
-# Purpose: This script will install Orfeo Tooblox including Monteverdi2 and
-# OTB apps, assumes script is run with sudo privileges.
+# Purpose: Install Orfeo Toolbox from the official Linux binary tarball
+#          (Ubuntu packages libotb / monteverdi are gone in 26.04).
 #
 #############################################################################
-# Copyright (c) 2009-2024 The Open Source Geospatial Foundation and others.
+# Copyright (c) 2009-2026 The Open Source Geospatial Foundation and others.
 # Licensed under the GNU LGPL version >= 2.1.
 #
 # This library is free software; you can redistribute it and/or modify it
@@ -20,92 +20,95 @@
 #
 #############################################################################
 
-# Running:
-# =======
-# monteverdi2
-# TODO: list all the apps, preferably Qt versions in /usr/bin/?
-
 ./diskspace_probe.sh "`basename $0`" begin
 BUILD_DIR=`pwd`
 ####
 
-# live disc's username is "user"
 if [ -z "$USER_NAME" ] ; then
    USER_NAME="user"
 fi
 USER_HOME="/home/$USER_NAME"
 
-DATA_DIR=$USER_HOME/gisvm/app-data/otb
+OTB_VERSION="9.1.1"
+OTB_TARBALL="OTB-${OTB_VERSION}-Linux.tar.gz"
+OTB_URL="https://www.orfeo-toolbox.org/packages/${OTB_TARBALL}"
+OTB_ROOT="/usr/local/lib/OTB-${OTB_VERSION}"
 OTB_DATA=/usr/local/share/otb
+TMP_DIR=/tmp/build_otb
 
-apt-get -q update
+mkdir -p "$TMP_DIR" "$OTB_DATA"
+cd "$TMP_DIR"
 
-#Install applications, can we eliminate some? otbapp-legacy?
-#otbapp legacy provide standalone application which are demonstrators of some OTB functionnalities
-#Lot's of these applications have been ported in modules in monteverdi but there are still remainning applications
-#in the legacy not available in monteverdi (simple viewer manager, vector database/raster registration...
-#Monteverdi is perhap's sufficient in a first approach,if you need to save space we  can eliminate otbapp-legacy
-apt-get --assume-yes install libotb otb-bin otb-bin-qt monteverdi
-# python-otb
+if [ ! -f "$TMP_DIR/$OTB_TARBALL" ] ; then
+   wget -c --progress=dot:mega -O "$TMP_DIR/$OTB_TARBALL" "$OTB_URL"
+fi
 
-#### install desktop icon ####
-cp /usr/share/applications/monteverdi.desktop "$USER_HOME/Desktop/"
-chown -R $USER_NAME:$USER_NAME "$USER_HOME/Desktop/monteverdi.desktop"
+# Official Linux tarball has no top-level directory (bin/, lib/, otbenv.profile).
+rm -rf "$OTB_ROOT"
+mkdir -p "$OTB_ROOT"
+tar -xzf "$TMP_DIR/$OTB_TARBALL" -C "$OTB_ROOT"
+if [ ! -f "$OTB_ROOT/otbenv.profile" ] ; then
+   echo "ERROR: OTB tarball missing otbenv.profile under $OTB_ROOT" >&2
+   ls -la "$OTB_ROOT" >&2 || true
+   exit 1
+fi
 
-## 12dev  otb paths fix #1604
-# echo 'export PYTHONPATH=$PYTHONPATH:/usr/lib/otb/python' >> "$USER_HOME/.bashrc"
-echo 'export ITK_AUTOLOAD_PATH=/usr/lib/otb/applications' >> "$USER_HOME/.bashrc"
+# Environment for shells and launchers
+cat << EOF > /etc/profile.d/otb.sh
+# Orfeo Toolbox ${OTB_VERSION} (official Linux binary)
+if [ -f "$OTB_ROOT/otbenv.profile" ] ; then
+   . "$OTB_ROOT/otbenv.profile"
+fi
+EOF
+chmod 644 /etc/profile.d/otb.sh
 
-## import once to pre-compile
-python3 -c "import sys;sys.path.append('/usr/lib/otb/python');import otbApplication"
+# Convenience wrappers on PATH
+mkdir -p /usr/local/bin
+for APP in monteverdi mapla ; do
+   if [ -x "$OTB_ROOT/bin/$APP" ] ; then
+      cat << EOF > "/usr/local/bin/$APP"
+#!/bin/sh
+. /etc/profile.d/otb.sh
+exec "$OTB_ROOT/bin/$APP" "\$@"
+EOF
+      chmod 755 "/usr/local/bin/$APP"
+   fi
+done
 
-##---------------------------------
+# Desktop launchers
+if [ -x /usr/local/bin/monteverdi ] ; then
+   cat << EOF > /usr/share/applications/monteverdi.desktop
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=Monteverdi
+Comment=Orfeo Toolbox viewer
+Categories=Application;Geography;Geoscience;Education;
+Exec=monteverdi
+Icon=multimedia-photo-viewer
+Terminal=false
+EOF
+   cp /usr/share/applications/monteverdi.desktop "$USER_HOME/Desktop/"
+   chown "$USER_NAME:$USER_NAME" "$USER_HOME/Desktop/monteverdi.desktop"
+fi
 
-
-cat << EOF > /usr/share/applications/otb-mapla.desktop
+if [ -x /usr/local/bin/mapla ] ; then
+   cat << EOF > /usr/share/applications/otb-mapla.desktop
 [Desktop Entry]
 Type=Application
 Encoding=UTF-8
 Name=OTB Launcher
 Comment=OTB Mapla
 Categories=Application;Geography;Geoscience;Education;
-Exec=env OTB_APPLICATION_PATH=/usr/lib/otb/applications /usr/bin/mapla
-Icon=monteverdi
+Exec=mapla
+Icon=multimedia-photo-viewer
 Terminal=false
 EOF
+   cp /usr/share/applications/otb-mapla.desktop "$USER_HOME/Desktop/"
+   chown "$USER_NAME:$USER_NAME" "$USER_HOME/Desktop/otb-mapla.desktop"
+fi
 
-cp /usr/share/applications/otb-mapla.desktop "$USER_HOME/Desktop/"
-chown -R $USER_NAME:$USER_NAME "$USER_HOME/Desktop/otb-mapla.desktop"
-
-# Download OrfeoToolBox data and documentation (software guide and cookbook)
-# Total: 60MB
-# [ -d $DATA_DIR ] || mkdir $DATA_DIR
-# [ -f $DATA_DIR/OTBSoftwareGuide.pdf ] || \
-#    wget --progress=dot:mega "http://www.orfeo-toolbox.org/packages/OTBSoftwareGuide.pdf" \
-#      -O $DATA_DIR/OTBSoftwareGuide.pdf
-
-# [ -f $DATA_DIR/OTBCookBook.pdf ] || \
-#    wget --progress=dot:mega "http://www.orfeo-toolbox.org/packages/OTBCookBook.pdf" \
-#      -O $DATA_DIR/OTBCookBook.pdf
-
-# [ -f $DATA_DIR/OTB-Data-Examples.tgz ] || \
-#    wget --progress=dot:mega "http://www.orfeo-toolbox.org/packages/OTB-Data-Examples.tgz" \
-#      -O $DATA_DIR/OTB-Data-Examples.tgz
-
-# Install docs and demos
-# if [ ! -d "$OTB_DATA" ]; then
-#     mkdir -p "$OTB_DATA"
-#     echo "Moving  OTB pdf  doc in $OTB_DATA/....."
-#     mv "$DATA_DIR/OTBSoftwareGuide.pdf" "$OTB_DATA/"
-#     echo "Done"
-#     echo "Moving  OTB cookbook pdf  doc in $OTB_DATA/....."
-#     mv "$DATA_DIR/OTBCookBook.pdf" "$OTB_DATA/"
-#     echo "Done"
-#     mkdir -p "$OTB_DATA/demos"
-#     echo "Extracting OTB data examples $OTB_DATA/demos/..."
-#     tar xzf "$DATA_DIR/OTB-Data-Examples.tgz" -C $OTB_DATA/demos/
-#     echo "Done"
-# fi
+rm -rf "$TMP_DIR"
 
 ####
 "$BUILD_DIR"/diskspace_probe.sh "`basename $0`" end

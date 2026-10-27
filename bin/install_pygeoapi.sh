@@ -36,16 +36,24 @@ mkdir -p "$PYGEOAPI_DIR"
 
 echo 'Installing pygeoapi ...'
 
-apt-get install --yes python3-pygeoapi
+# python3-pygeoapi is not in Ubuntu 26.04; use the shared venv.
+. "$BUILD_DIR/tools/osgeolive_venv.sh"
+if ! osgeolive_venv_pip pygeoapi ; then
+   echo "ERROR: pip install pygeoapi failed" >&2
+   exit 1
+fi
+PYGEOAPI_BIN=`osgeolive_venv_bin pygeoapi`
+ln -sfn "$PYGEOAPI_BIN" /usr/local/bin/pygeoapi
 
 # copy pygeoapi configuration
 cp "$BUILD_DIR/../app-conf/pygeoapi/pygeoapi-config.yml" "$PYGEOAPI_CONFIG"
 cp "$BUILD_DIR/../app-conf/pygeoapi/ne_110m_lakes.geojson" "$PYGEOAPI_DIR/ne_110m_lakes.geojson"
 
 # generate OpenAPI document
-pygeoapi openapi generate $PYGEOAPI_CONFIG > $PYGEOAPI_OPENAPI
+"$PYGEOAPI_BIN" openapi generate $PYGEOAPI_CONFIG > $PYGEOAPI_OPENAPI
 
 echo 'Downloading pygeoapi logo ...'
+mkdir -p /usr/local/share/icons
 wget -c --progress=dot:mega \
    -O /usr/local/share/icons/pygeoapi.png \
       "https://github.com/geopython/pygeoapi.io/raw/master/docs/img/pygeoapi-icon.png"
@@ -56,7 +64,7 @@ cat << EOF > "$BIN/pygeoapi_start.sh"
 #!/bin/sh
 export PYGEOAPI_CONFIG=$PYGEOAPI_CONFIG
 export PYGEOAPI_OPENAPI=$PYGEOAPI_OPENAPI
-pygeoapi serve
+exec $PYGEOAPI_BIN serve
 EOF
 
 chmod 755 $BIN/pygeoapi_start.sh

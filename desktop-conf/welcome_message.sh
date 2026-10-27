@@ -31,6 +31,8 @@ if [ -z "$AWAKE" ] || [ "$AWAKE" -gt 10 ] ; then
    exit
 fi
 
-gxmessage -file /usr/local/share/osgeo-desktop/welcome_message.txt \
-   -title "Welcome" -center
+# gxmessage is gone from Ubuntu 26.04; zenity is already on the live image.
+zenity --text-info \
+   --filename=/usr/local/share/osgeo-desktop/welcome_message.txt \
+   --title="Welcome" --width=480 --height=360
 

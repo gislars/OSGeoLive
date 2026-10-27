@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 2018-2024 The Open Source Geospatial Foundation and others.
+# Copyright (c) 2018-2026 The Open Source Geospatial Foundation and others.
 # Licensed under the GNU LGPL v.2.1.
 #
 # This library is free software; you can redistribute it and/or modify it
@@ -27,28 +27,11 @@ if [ -z "$USER_NAME" ] ; then
 fi
 USER_HOME="/home/$USER_NAME"
 
-PACKAGES="pdal"
-PDAL_PLUGINS="libpdal-plugins"
-
-# pkg not installed to save disc space:
-#   pdal-doc
-
-apt-get --assume-yes install ${PACKAGES}
- # ${PDAL_PLUGINS}
-
-if [ $? -ne 0 ] ; then
-   echo "ERROR: package install failed."
-   exit 1
-fi
-
-# install data for PDAL
-#echo "2" | sudo gmt-coastline-download
-
-#echo 'export PATH="$PATH:/usr/lib/PDAL/bin"' > /etc/profile.d/PDAL_path.sh
-#cat << EOF > /etc/profile.d/PDAL_path.sh
-#PATH="\$PATH:/usr/lib/pdal/bin"
-#export PATH
-#EOF
+# pdal and libpdal-plugins are not in Ubuntu 26.04. There is no official
+# standalone Linux binary comparable to the former Debian packages yet.
+# Documented as removed/replaced pending a pinned binary; do not fail the
+# full ISO build on a missing lidar stack.
+echo "NOTE: PDAL is not packaged for Ubuntu 26.04; skipping install_PDAL.sh."
 
 ####
 ./diskspace_probe.sh "`basename $0`" end
