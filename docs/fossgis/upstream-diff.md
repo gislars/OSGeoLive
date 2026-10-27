@@ -90,6 +90,21 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** upstream-tauglich
 - **Merge:** `fix/iso-large-squashfs`
 
+### Build-Logs werden automatisch abgelegt
+
+- **Dateien:** `bin/build_chroot.sh`, `fossgis/tools/record_full_build.sh`
+- **Was:** `build_chroot.sh` ruft sich einmal selbst auf und schreibt die gesamte
+  Ausgabe nach `build/logs/<Startzeit>-<ISO-Name>.log`. Der Kopf enthält Commit,
+  `git describe`, die Zahl geänderter Dateien, Aufruf und Build-Verzeichnis, das
+  Ende Exit-Code und ISO mit SHA256. `build/logs/index.tsv` listet alle Builds,
+  `build/logs/latest.log` zeigt auf den letzten. `record_full_build.sh` nimmt
+  ohne Angabe `latest.log` und akzeptiert `green` nur, wenn das Log zu HEAD ohne
+  lokale Änderungen gehört und ein ISO entstanden ist.
+- **Warum:** Kein `tee`, kein Umbenennen von Hand; jedes Log bleibt erhalten und
+  ist einem Commit und einem ISO zugeordnet.
+- **Einordnung:** upstream-tauglich
+- **Merge:** `chore/build-logs`
+
 ### Vorgabe-Repository ist der Fork
 
 - **Dateien:** `bin/build_chroot.sh`, `bin/inchroot.sh`, `bin/bootstrap.sh`

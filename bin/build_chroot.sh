@@ -65,27 +65,11 @@ else
     GIT_USER="gislars"
 fi
 
-echo
-echo "==============================================================="
-echo "Build parameters"
-echo "==============================================================="
-
-echo "ARCH: $ARCH"
-echo "MODE: $BUILD_MODE"
-if echo "$GIT_USER" | grep -q "://"; then
-    echo "Git repository: $GIT_USER"
-else
-    echo "Git repository: https://github.com/$GIT_USER/OSGeoLive.git"
-fi
-echo "Git branch: $GIT_BRANCH"
-
 DIR=`cd "$(dirname "$0")" && pwd`
 GIT_DIR=`dirname "$DIR"`
 if [ -z "$BUILD_DIR" ] ; then
     BUILD_DIR="$GIT_DIR/build"
 fi
-echo "Source checkout: $GIT_DIR"
-echo "Build directory: $BUILD_DIR"
 VERSION=`cat "$GIT_DIR"/VERSION.txt`
 PACKAGE_NAME="osgeolive"
 cd "$GIT_DIR"
@@ -106,6 +90,82 @@ else
     ISO_NAME="$PACKAGE_NAME-nightly-build$GIT_BUILD-$ARCH-$REVISION-$GIT_BRANCH"
     VERSION_MODE="build$GIT_BUILD-$REVISION"
 fi
+
+# Every build writes its complete output to build/logs/<start>-<iso name>.log,
+# build/logs/index.tsv lists all builds with commit and result.
+if [ -z "$FOSSGIS_BUILD_LOG" ] ; then
+    LOG_DIR="$BUILD_DIR/logs"
+    mkdir -p "$LOG_DIR"
+    FOSSGIS_BUILD_LOG="$LOG_DIR/`date +%Y%m%d-%H%M%S`-$ISO_NAME.log"
+    export FOSSGIS_BUILD_LOG
+    LOG_DESCRIBE=`git describe --long --tags --match '[0-9]*' 2>/dev/null`
+    if LOG_STATUS=`git status --porcelain --untracked-files=no 2>/dev/null` ; then
+        LOG_DIRTY=`printf '%s' "$LOG_STATUS" | grep -c .`
+    else
+        LOG_DIRTY="unknown"
+    fi
+    LOG_START=`date -Iseconds`
+    {
+        echo "# commit=$REVISION_FULL"
+        echo "# describe=$LOG_DESCRIBE"
+        echo "# dirty_files=$LOG_DIRTY"
+        echo "# command=$0 $*"
+        echo "# build_dir=$BUILD_DIR"
+        echo "# start=$LOG_START"
+    } > "$FOSSGIS_BUILD_LOG"
+    echo "Build log: $FOSSGIS_BUILD_LOG"
+
+    # Ctrl-C stops the build, but the log still gets its end lines and index entry
+    trap 'echo "Build interrupted" >&2' INT TERM
+    ( "$DIR/build_chroot.sh" "$@" ; echo "$?" > "$FOSSGIS_BUILD_LOG.rc" ) 2>&1 | \
+        tee -a "$FOSSGIS_BUILD_LOG"
+    trap - INT TERM
+    BUILD_RC=`cat "$FOSSGIS_BUILD_LOG.rc" 2>/dev/null || echo interrupted`
+    rm -f "$FOSSGIS_BUILD_LOG.rc"
+
+    ISO_FILE="$BUILD_DIR/$ISO_NAME.iso"
+    if [ "$BUILD_RC" = "0" ] && [ -s "$ISO_FILE" ] ; then
+        ISO_INFO="`basename "$ISO_FILE"` sha256=`sha256sum "$ISO_FILE" | cut -d' ' -f1`"
+    else
+        ISO_INFO="none"
+    fi
+    {
+        echo "# end=`date -Iseconds`"
+        echo "# exit=$BUILD_RC"
+        echo "# iso=$ISO_INFO"
+    } >> "$FOSSGIS_BUILD_LOG"
+
+    if [ ! -f "$LOG_DIR/index.tsv" ] ; then
+        printf 'start\texit\tcommit\tdescribe\tdirty_files\tiso\tlog\n' > "$LOG_DIR/index.tsv"
+    fi
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$LOG_START" "$BUILD_RC" "$REVISION_FULL" \
+        "$LOG_DESCRIBE" "$LOG_DIRTY" "$ISO_INFO" "`basename "$FOSSGIS_BUILD_LOG"`" \
+        >> "$LOG_DIR/index.tsv"
+    ln -sfn "`basename "$FOSSGIS_BUILD_LOG"`" "$LOG_DIR/latest.log"
+    if [ -n "$SUDO_USER" ] ; then
+        chown -R "$SUDO_USER": "$LOG_DIR"
+    fi
+
+    echo "Build log: $FOSSGIS_BUILD_LOG (exit $BUILD_RC, iso: $ISO_INFO)"
+    [ "$BUILD_RC" = "0" ] || exit 1
+    exit 0
+fi
+
+echo
+echo "==============================================================="
+echo "Build parameters"
+echo "==============================================================="
+
+echo "ARCH: $ARCH"
+echo "MODE: $BUILD_MODE"
+if echo "$GIT_USER" | grep -q "://"; then
+    echo "Git repository: $GIT_USER"
+else
+    echo "Git repository: https://github.com/$GIT_USER/OSGeoLive.git"
+fi
+echo "Git branch: $GIT_BRANCH"
+echo "Source checkout: $GIT_DIR"
+echo "Build directory: $BUILD_DIR"
 
 #Volume name, max 11 chars:
 IMAGE_NAME=OSGEOLIVE`echo "$VERSION" | cut -d '.' -f 1`
