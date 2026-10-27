@@ -38,7 +38,7 @@ VM="${PACKAGE_NAME}-$VERSION"
 # Add 'user' to needed groups
 #   GRPS="audio dialout fuse plugdev pulse staff tomcat7 users www-data vboxsf"
 #bad smelling hack to mitigate the effects of #1104's race condition
-GRPS="users tomcat www-data staff plugdev audio dialout pulse vboxsf"
+GRPS="users tomcat www-data staff plugdev audio dialout pulse vboxsf docker"
 
 ## Create systemd service for manage_user_groups.sh
 ## source: https://askubuntu.com/questions/814/how-to-run-scripts-on-start-up/719157#719157
@@ -70,6 +70,26 @@ systemctl start manage_user_groups.service
 
 ## Enable manage_user_groups service at startup
 systemctl enable manage_user_groups.service
+
+# Casper can drop the docker group membership; re-apply at boot (FOSSGIS 2025/2026)
+if [ ! -e /etc/systemd/system/manage_docker_group.service ] ; then
+    cat << EOF > /etc/systemd/system/manage_docker_group.service
+[Unit]
+Description=Add user to docker group
+
+[Service]
+ExecStart=/usr/sbin/adduser $USER_NAME docker
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+fi
+
+systemctl daemon-reload
+systemctl start manage_docker_group.service
+systemctl enable manage_docker_group.service
 
 # Re-enable if user does not belong to groups
 # cp ../desktop-conf/casper/27osgeo_groups \

@@ -101,6 +101,17 @@ chmod a+r /etc/apt/keyrings/qgis-archive-keyring.gpg
 cp ../sources.list.d/qgis.sources /etc/apt/sources.list.d/
 cp ../app-conf/apt/qgis-pin.pref /etc/apt/preferences.d/
 
+# Docker CE (always; needed by install_docker.sh in nightly and release builds)
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+cp ../sources.list.d/docker.list /etc/apt/sources.list.d/
+
+# VS Code (always; needed by install_vscode.sh)
+wget -qO- https://packages.microsoft.com/keys/microsoft.asc | \
+  gpg --dearmor -o /etc/apt/keyrings/packages.microsoft.gpg
+chmod a+r /etc/apt/keyrings/packages.microsoft.gpg
+cp ../sources.list.d/vscode.list /etc/apt/sources.list.d/
+
 apt-get -q update
 
 
