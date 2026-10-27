@@ -112,6 +112,7 @@ strict() { if [ "$ARCHIVE" -eq 1 ] ; then warn "$@" ; else fail "$@" ; fi ; }
 
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
+: > "$TMP_DIR/ws_commits"
 
 # Allow list patterns
 : > "$TMP_DIR/allow_line"
@@ -211,8 +212,11 @@ check_commit() {
             grep 'conflict marker' "$TMP_DIR/check_msgs" | sed -n 's/^/      /; 1,10p'
         fi
         if grep -v -q 'conflict marker' "$TMP_DIR/check_msgs" ; then
-            strict "$short: whitespace errors ($(grep -v -c 'conflict marker' "$TMP_DIR/check_msgs") lines, git diff --check):"
+            # Whitespace in an old commit can be fixed later on the tip; report
+            # but do not fail if the aggregate tip range is clean (checked below).
+            warn "$short: whitespace errors ($(grep -v -c 'conflict marker' "$TMP_DIR/check_msgs") lines, git diff --check):"
             grep -v 'conflict marker' "$TMP_DIR/check_msgs" | sed -n 's/^/      /; 1,5p'
+            echo "$c" >> "$TMP_DIR/ws_commits"
         fi
     fi
 }
@@ -222,6 +226,16 @@ while read -r c ; do
     COUNT=$((COUNT + 1))
     check_commit "$c"
 done < <(git rev-list --reverse "$@")
+
+# Whitespace must be clean on the tip tree even if an older commit still has it
+if [ -s "$TMP_DIR/ws_commits" ] && git rev-parse -q --verify "refs/tags/$BASE_TAG" > /dev/null ; then
+    if ! git diff --check "$BASE_TAG".."$TIP" > "$TMP_DIR/ws_tip" 2>&1 ; then
+        if [ -s "$TMP_DIR/ws_tip" ] ; then
+            strict "tip whitespace errors remain (fix the tip, not only later commits):"
+            sed -n 's/^/      /; 1,10p' "$TMP_DIR/ws_tip"
+        fi
+    fi
+fi
 
 # 3. syntax of changed scripts as they are at the tip
 for path in "${!CHANGED[@]}" ; do

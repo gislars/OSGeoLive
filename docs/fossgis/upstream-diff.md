@@ -420,6 +420,22 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** temporär
 - **Merge:** `build/resolute-app-ports`
 
+## Deutsche Systemvorgaben
+
+### Locale, Tastatur, Zeitzone, Calamares, pgAdmin
+
+- **Dateien:** `bin/install_locale.sh`, `bin/inchroot.sh`, `bin/build_chroot.sh`,
+  `bin/install_desktop.sh`, `bin/install_pgadmin.sh`, `fossgis/edition.conf`,
+  `desktop-conf/calamares/modules/locale.conf`,
+  `desktop-conf/calamares/modules/keyboard.conf`, `app-conf/qgis/QGIS3.ini`
+- **Was:** `install_locale.sh` setzt `de_DE.UTF-8`, QWERTZ, Europe/Berlin, A4,
+  Sprachpakete und haltet XDG-Ordner auf englisch (`Desktop`). Casper-Bootparameter
+  und Calamares-Module vorbelegen Deutsch/Berlin. QGIS `userLocale=de`. pgAdmin
+  ohne Master-Passwort und mit `--no-sandbox`. Keyring-Unlock beim Login.
+- **Warum:** Workshop-Laptops sollen ohne Nachkonfiguration deutsch starten.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `feature/german-defaults`
+
 ## Konferenzstadt OSM
 
 ### Heidelberg-Extrakt (PBF + XML vor dem Build)

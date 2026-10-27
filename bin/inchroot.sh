@@ -146,6 +146,7 @@ rm -f "$PARTIAL_LIST"
 else
 
 ./setup.sh "$BUILD_MODE"
+./install_locale.sh
 
 ### Base installers
 ./base_c.sh
@@ -166,6 +167,7 @@ else
 ./install_spatialite.sh
 ./install_osm.sh
 ./load_postgis.sh
+./install_pgadmin.sh
 ./install_pgrouting.sh
 ./install_ossim.sh
 ./install_mapserver.sh
