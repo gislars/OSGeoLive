@@ -18,3 +18,5 @@ line:^[[:space:]]*sudo: "ALL=\(ALL\) NOPASSWD:ALL"$
 line:^[[:space:]]*lock_passwd: true$
 # Browser log of the OpenLayers examples, public example token (fossgis2026)
 path:^ol_issues\.txt$
+path:^bin/install_wifi\.sh$
+line:WIFI_(SSID|PSK|KEY_MGMT)

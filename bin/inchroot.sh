@@ -147,6 +147,7 @@ else
 
 ./setup.sh "$BUILD_MODE"
 ./install_locale.sh
+./install_wifi.sh
 
 ### Base installers
 ./base_c.sh
