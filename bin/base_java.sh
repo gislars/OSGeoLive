@@ -22,8 +22,16 @@
 ./diskspace_probe.sh "`basename $0`" begin
 ####
 
-# NOTE: We have changed the java-common package in our ppa to point default-jdk to openjdk-17
-apt-get install --yes default-jdk default-jre
+# default-jdk is OpenJDK 25 on Ubuntu 26.04; the Java applications on the
+# disc (GeoServer, deegree, ...) are released for Java 21, so install that
+# and make it the default for all Java alternatives
+JAVA_VERSION="21"
+apt-get install --yes "openjdk-$JAVA_VERSION-jdk" "openjdk-$JAVA_VERSION-jre"
+if [ $? -ne 0 ] ; then
+   echo 'ERROR: Package install failed! Aborting.'
+   exit 1
+fi
+update-java-alternatives --set "java-1.$JAVA_VERSION.0-openjdk-amd64"
 
 cat <<EOF >> /etc/environment
 # fix #2478 - java ugly/non-antialiased font rendering

@@ -37,7 +37,13 @@ apt-get install --yes python3-gdal python3-shapely python3-rasterio rasterio \
     python3-netcdf4 python3-geojson python3-scipy python3-pandas \
     python3-pyshp python3-geographiclib python3-geoalchemy2 \
     python3-cartopy python3-folium python3-pystac python3-pystac-client \
-    python3-mappyfile python3-owslib python3-rioxarray
+    python3-owslib python3-rioxarray
+
+# mappyfile is not packaged for Ubuntu 26.04 (it came from the OSGeoLive PPA),
+# its dependencies are, so only mappyfile itself comes from PyPI
+MAPPYFILE_VERSION="1.2.0"
+apt-get install --yes python3-pip python3-lark python3-jsonschema python3-click
+pip3 install --no-deps --break-system-packages "mappyfile==$MAPPYFILE_VERSION"
 
 # Add a symlink for rio
 ln -s /usr/bin/rasterio /usr/local/bin/rio

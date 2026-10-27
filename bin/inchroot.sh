@@ -74,7 +74,7 @@ export LC_ALL=C
 
 # In 9.10, before installing or upgrading packages you need to run
 # TODO: Check/ask if this needs to be done in 12.04
-dbus-uuidgen > /var/lib/dbus/machines-id
+dbus-uuidgen > /var/lib/dbus/machine-id
 dpkg-divert --local --rename --add /sbin/initctl
 ln -s /bin/true /sbin/initctl
 
@@ -316,7 +316,7 @@ rm /etc/resolv.conf
 ln -s /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 
 # If you installed software, be sure to run 
-rm /var/lib/dbus/machine-id
+rm -f /var/lib/dbus/machine-id
 rm /sbin/initctl
 dpkg-divert --rename --remove /sbin/initctl
 

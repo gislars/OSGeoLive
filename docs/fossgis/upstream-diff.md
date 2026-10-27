@@ -164,6 +164,64 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** upstream-tauglich
 - **Merge:** `feature/build-cache`
 
+## Basis Lubuntu 26.04
+
+### Geschichtetes Lubuntu-Image wird zusammengeführt
+
+- **Dateien:** `bin/build_chroot.sh`, `desktop-conf/calamares/unpackfs.conf`,
+  `desktop-conf/calamares/packages.conf`, `desktop-conf/calamares/initramfs.conf`
+- **Was:** `UBU_RELEASE` 26.04, `ISO_RELEASE` 26.04.1. Das 26.04-ISO hat statt
+  `filesystem.squashfs` drei Schichten (`minimal`, `minimal.standard`,
+  `minimal.standard.live`). `build_chroot.sh` hängt die Kette per overlayfs
+  zusammen, kopiert sie nach `edit/` und packt am Ende wie bisher eine
+  `filesystem.squashfs`. `conf/conf.d/default-layer.conf` fliegt aus der initrd,
+  damit casper diese eine Datei nimmt. Die initrd wird mit allen Teilen (Microcode,
+  Firmware, Hauptteil) und dem Kompressor aus `conf/initramfs.conf` (zstd) neu
+  gepackt. Für Calamares ersetzt der Build `unpackfs.conf` (nur
+  `filesystem.squashfs`), entfernt `stacked_squashfs.flag`, stellt in
+  `settings.conf` `dracut`/`dracutlukscfg` auf `initramfs`/`initramfscfg` um und
+  ergänzt `packages.conf` um das Entfernen der Live-Pakete (casper, Calamares,
+  `user-setup`, `zram-config` und andere). Ein ISO ohne Schichten wird wie bisher
+  verarbeitet. Plymouth-Titel und `.disk/info` werden unabhängig von „LTS“ und
+  Codename ersetzt.
+- **Warum:** Ohne Zusammenführen müssten die OSGeoLive-Pakete in eine eigene
+  Schicht und Calamares diese zusätzlich kennen. Die Live-Schicht ersetzt dracut
+  durch initramfs-tools, deshalb muss das installierte System initramfs-tools nutzen.
+- **Einordnung:** upstream-tauglich (Upstream braucht dasselbe für 26.04)
+- **Merge:** `build/resolute-base`
+
+### Paketquellen für resolute
+
+- **Dateien:** `bin/setup.sh`, `sources.list.d/`, `app-conf/apt/keyrings/`
+- **Was:** Das OSGeoLive-PPA fällt weg (keine Pakete für resolute), ebenso die
+  `apt-key`-Aufrufe und die unbenutzte `ubuntugis.list`. Firefox kommt aus dem
+  offiziellen Mozilla-Repository (`mozilla.sources`, Schlüssel unter
+  `app-conf/apt/keyrings/packages.mozilla.org.asc`, Fingerprint
+  `35BAA0B33E9EB396F59CA838C0BA5CE6DC6315A3`) statt aus dem Mozilla-Team-PPA.
+  CRAN und pgAdmin zeigen auf resolute. `apt-get upgrade` läuft, die Snap-Mounts
+  werden aus `/proc/self/mounts` ermittelt statt mit festen Revisionsnummern, die
+  Änderung an `20auto-upgrades` nur, wenn die Datei existiert. Paketnamen:
+  `7zip` statt `p7zip`, `iw` statt `wireless-tools`, `libieee1284-3t64`.
+- **Warum:** `apt-key` gibt es nicht mehr. Der Schlüssel des Mozilla-Team-PPA ist
+  RSA 1024, apt 3 verlangt mindestens RSA 2048.
+- **Einordnung:** upstream-tauglich
+- **Merge:** `build/resolute-base`
+
+### Basis-Pakete und Versionen
+
+- **Dateien:** `bin/base_c.sh`, `bin/base_java.sh`, `bin/base_python.sh`,
+  `bin/install_postgis.sh`, `bin/service_postgresql.sh`, `bin/service_tomcat.sh`,
+  `bin/inchroot.sh`
+- **Was:** `libgdal38` (GDAL 3.12), PostgreSQL 18, OpenJDK 21 statt `default-jdk`
+  (dort OpenJDK 25) und als Vorgabe gesetzt, `mappyfile` 1.2.0 per pip (die
+  Abhängigkeiten aus Ubuntu). `service_tomcat.sh` nimmt GID 998 nur, wenn sie frei
+  ist (unter 26.04 gehört sie `systemd-network`). In `inchroot.sh` heißt die Datei
+  `machine-id` statt `machines-id` und wird mit `rm -f` entfernt.
+- **Warum:** Die alten Pakete gibt es unter resolute nicht; `default-jdk` zeigte
+  bisher dank PPA auf OpenJDK 17.
+- **Einordnung:** upstream-tauglich
+- **Merge:** `build/resolute-base`
+
 ## Repository und Werkzeuge
 
 ### `.gitignore`
@@ -203,34 +261,6 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** FOSSGIS-spezifisch
 - **Merge:** `docs/upstream-diff`
 
-### Sicherheitsregeln für Build und KI-Assistenten
-
-- **Dateien:** `AGENTS.md`, `docs/fossgis/build-safety.md`, `docs/fossgis/README.md`
-- **Was:** verbindliche Regeln für KI-Assistenten (`AGENTS.md`) und ein Dokument mit
-  zwei Vorfällen vom 27.10.2026, den versagten Sicherungen, Regeln für Build-Skripte
-  und den Stand der Schutzmaßnahmen.
-- **Warum:** Ein Teilbuild löschte über das eingebundene `/dev` die Gerätedateien des
-  Build-Rechners; ein danach empfohlener Reparaturbefehl beendete die Sitzung des
-  Nutzers. Das darf sich nicht wiederholen.
-- **Einordnung:** FOSSGIS-spezifisch (die Build-Regeln sind upstream-tauglich)
-- **Merge:** `docs/build-safety`
-
-### Build nur in einer Wegwerf-VM
-
-- **Dateien:** `fossgis/tools/builder_vm.sh`, `fossgis/tools/host_guard.sh`,
-  `fossgis/tools/check_clean.allow`, `AGENTS.md`, `docs/fossgis/README.md`,
-  `docs/fossgis/build-safety.md`
-- **Was:** `builder_vm.sh` startet eine QEMU/KVM-VM ohne gemeinsame Verzeichnisse mit
-  dem Host, schickt den committeten Stand als Git-Bundle und `local/` per rsync,
-  startet den Build in der VM und holt ISO, Log und neue Cache-Dateien zurück.
-  Verbindungen der VM zum Host (10.0.2.2) werden verworfen. `host_guard.sh`
-  vergleicht vor und nach dem Build `/dev`, Mounts und freien Platz auf dem Host.
-  `AGENTS.md` verbietet Builds direkt auf dem Host.
-- **Warum:** Der Build braucht root; Fehler im Chroot dürfen den Build-Rechner nicht
-  mehr erreichen können.
-- **Einordnung:** FOSSGIS-spezifisch
-- **Merge:** `chore/builder-vm`
-
 ## Hinweise
 
 - **Zeilenenden:** Einige Upstream-Dateien haben CRLF-Zeilenenden, zum Beispiel
@@ -247,4 +277,7 @@ GIS-Stack und Anwendungen ergänzt.
 
 | Komponente | OSGeoLive 17.0 | FOSSGIS 2027 | Einordnung |
 |---|---|---|---|
-| Basis | Lubuntu 24.04.2 | Lubuntu 24.04.5 (26.04.1 folgt) | upstream-tauglich |
+| Basis | Lubuntu 24.04.2 | Lubuntu 26.04.1 | upstream-tauglich |
+| PostgreSQL | 16 | 18 | upstream-tauglich |
+| Java | OpenJDK 17 (PPA) | OpenJDK 21 | upstream-tauglich |
+| GDAL (Bibliothek) | libgdal37 (3.11, PPA) | libgdal38 (3.12) | upstream-tauglich |

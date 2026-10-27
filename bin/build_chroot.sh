@@ -191,6 +191,13 @@ for MOUNTPOINT in edit/var/cache/apt/archives edit/var/cache/fossgis-downloads ;
         exit 1
     fi
 done
+# Read-only mounts of the squashfs layers of a layered image (see below)
+for MOUNTPOINT in "$BUILD_DIR"/layers/merged "$BUILD_DIR"/layers/*.squashfs ; do
+    if mountpoint -q "$MOUNTPOINT" 2>/dev/null ; then
+        sudo umount -l "$MOUNTPOINT"
+    fi
+done
+rm -rf "$BUILD_DIR"/layers
 rm -rf "$BUILD_DIR"/edit
 rm -rf "$BUILD_DIR"/lzfiles
 rm -rf "$BUILD_DIR"/extract-cd
@@ -204,7 +211,7 @@ echo
 echo "Installing build tools"
 echo "======================"
 
-sudo apt-get install --yes squashfs-tools genisoimage syslinux-utils lzip binwalk lz4 xorriso
+sudo apt-get install --yes squashfs-tools genisoimage syslinux-utils lzip binwalk lz4 zstd xorriso rsync
 
 #TODO add wget to grab a fresh image, optional
 
@@ -218,9 +225,9 @@ mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 #mv ubuntu-9.04-desktop-i386.iso ~/livecdtmp
 UBU_MIRROR="http://cdimage.ubuntu.com"
-UBU_RELEASE="24.04"
+UBU_RELEASE="26.04"
 # cdimage only keeps the latest point release of a series
-ISO_RELEASE="24.04.5"
+ISO_RELEASE="26.04.1"
 # ISO_RELEASE="22.04-beta"
 UBU_ISO="lubuntu-${ISO_RELEASE}-desktop-$ARCH.iso"
 UBU_ISO_URL="$UBU_MIRROR/lubuntu/releases/$UBU_RELEASE/release"
@@ -258,20 +265,83 @@ dd if="$UBU_ISO" bs=512 skip="$EFISKIP" count="$EFISIZE" of="$EFI"
 
 #Extract .iso contents into dir 'extract-cd' 
 mkdir "extract-cd"
-rsync --exclude=/casper/filesystem.squashfs -a mnt/ "extract-cd"
+rsync --exclude='/casper/*.squashfs' -a mnt/ "extract-cd"
 
 echo
 echo "Extracting squashfs from Lubuntu image"
 echo "======================================"
-#Extract the SquashFS filesystem 
-if ! sudo unsquashfs mnt/casper/filesystem.squashfs ; then
-   echo "ERROR: could not extract mnt/casper/filesystem.squashfs." >&2
-   sudo umount mnt
-   exit 1
+if [ -f mnt/casper/filesystem.squashfs ] ; then
+   LAYERED_IMAGE="no"
+   #Extract the SquashFS filesystem
+   if ! sudo unsquashfs mnt/casper/filesystem.squashfs ; then
+      echo "ERROR: could not extract mnt/casper/filesystem.squashfs." >&2
+      sudo umount mnt
+      exit 1
+   fi
+   #Does the above need to be done every time or can it be done once, and then
+   # just make a fresh copy of the chroot for each builds
+   sudo mv squashfs-root edit
+else
+   # Since 25.10 the system comes as stacked layers (minimal,
+   # minimal.standard, minimal.standard.live). They are merged into one
+   # filesystem.squashfs again: casper mounts it without layerfs-path and
+   # Calamares installs it as a whole (see "Installer settings" below).
+   LAYERED_IMAGE="yes"
+   TOP_LAYER=""
+   for LAYER_FILE in mnt/casper/*.squashfs ; do
+      LAYER=`basename "$LAYER_FILE" .squashfs`
+      if [ -z "$TOP_LAYER" ] || [ ${#LAYER} -gt ${#TOP_LAYER} ] ; then
+         TOP_LAYER="$LAYER"
+      fi
+   done
+   if [ -z "$TOP_LAYER" ] || [ ! -f "mnt/casper/$TOP_LAYER.squashfs" ] ; then
+      echo "ERROR: no squashfs found in $UBU_ISO." >&2
+      exit 1
+   fi
+   # Same chain as casper: each layer sits on the one without its last suffix
+   mkdir -p layers/merged
+   LOWERDIRS=""
+   LAYER="$TOP_LAYER"
+   while : ; do
+      if [ ! -f "mnt/casper/$LAYER.squashfs" ] ; then
+         echo "ERROR: layer $LAYER.squashfs of $TOP_LAYER is missing." >&2
+         exit 1
+      fi
+      mkdir -p "layers/$LAYER.squashfs"
+      if ! sudo mount -o loop,ro "mnt/casper/$LAYER.squashfs" "layers/$LAYER.squashfs" ; then
+         echo "ERROR: could not mount mnt/casper/$LAYER.squashfs." >&2
+         exit 1
+      fi
+      LOWERDIRS="${LOWERDIRS:+$LOWERDIRS:}$BUILD_DIR/layers/$LAYER.squashfs"
+      PARENT_LAYER="${LAYER%.*}"
+      [ "$PARENT_LAYER" = "$LAYER" ] && break
+      LAYER="$PARENT_LAYER"
+   done
+   BASE_LAYER="$LAYER"
+   echo "Merging layers (top first): $LOWERDIRS"
+   if [ "$TOP_LAYER" = "$BASE_LAYER" ] ; then
+      MERGED="layers/$TOP_LAYER.squashfs"
+   else
+      MERGED="layers/merged"
+      if ! sudo mount -t overlay overlay -o ro,lowerdir="$LOWERDIRS" "$MERGED" ; then
+         echo "ERROR: could not merge the layers of $TOP_LAYER." >&2
+         exit 1
+      fi
+   fi
+   sudo mkdir edit
+   if ! sudo rsync -aHAX --numeric-ids "$MERGED"/ edit/ ; then
+      echo "ERROR: could not copy the merged layers into edit/." >&2
+      exit 1
+   fi
+   mountpoint -q layers/merged && sudo umount layers/merged
+   for LAYER_DIR in layers/*.squashfs ; do
+      sudo umount "$LAYER_DIR"
+   done
+   rm -rf layers
+   # The layer files and their metadata are replaced by filesystem.*
+   rm -f extract-cd/casper/"$BASE_LAYER".*
+   touch extract-cd/casper/filesystem.manifest extract-cd/casper/filesystem.size
 fi
-#Does the above need to be done every time or can it be done once, and then
-# just make a fresh copy of the chroot for each builds
-sudo mv squashfs-root edit
 
 echo
 echo "Setting up network for chroot"
@@ -437,6 +507,9 @@ unmkinitramfs initrd .
 
 #Perhaps not needed since this also happens in chroot part.
 cp "$GIT_DIR"/desktop-conf/casper/casper.conf main/etc/casper.conf
+# The merged image has one filesystem.squashfs, casper must not look for
+# the layer chain (LAYERFS_PATH=minimal.standard.live.squashfs)
+rm -f main/conf/conf.d/default-layer.conf
 #cp "$GIT_DIR"/desktop-conf/casper/27osgeo_groups scripts/casper-bottom/27osgeo_groups
 #cat << EOF >> scripts/casper-bottom/ORDER
 #/scripts/casper-bottom/27osgeo_groups
@@ -484,34 +557,37 @@ cp ../edit/usr/share/plymouth/themes/spinner/throbber-*.png ../edit/usr/share/pl
 
 #Change the text on the lubuntu-text plymouth loader both on lzfiles
 # and on edit folders
-sed -i -e "s/title=.ubuntu ${UBU_RELEASE} LTS/title=OSGeoLive ${VERSION_MODE}/g" \
+# "Lubuntu 24.04 LTS" up to 24.04, "Lubuntu 26.04" since 26.04
+sed -i -e "s/^title=.ubuntu ${UBU_RELEASE}\( LTS\)\?$/title=OSGeoLive ${VERSION_MODE}/" \
     main/usr/share/plymouth/themes/lubuntu-text/lubuntu-text.plymouth
 
-sed -i -e "s/title=.ubuntu ${UBU_RELEASE} LTS/title=OSGeoLive ${VERSION_MODE}/g" \
+sed -i -e "s/^title=.ubuntu ${UBU_RELEASE}\( LTS\)\?$/title=OSGeoLive ${VERSION_MODE}/" \
     ../edit/usr/share/plymouth/themes/lubuntu-text/lubuntu-text.plymouth
 
 #Optional change it in the .disk/info too
-sed -i -e "s/.ubuntu ${ISO_RELEASE} LTS \"Noble Numbat\"/OSGeoLive ${VERSION_MODE}/g" \
+sed -i -e "s/.ubuntu ${ISO_RELEASE} LTS \"[^\"]*\"/OSGeoLive ${VERSION_MODE}/" \
     ../extract-cd/.disk/info
 
 # rm ../initrd.lz4
 # find . | cpio --quiet --dereference -o -H newc | \
 #    lz4 -9 -l > ../initrd.lz4
 
-touch myinitrd
-cd early
-find . -print0 | cpio --null --create --format=newc > ../myinitrd
-# find . -print0 | cpio -R 0:0 -o -H newc > ../myinitrd
-cd ../early2
-find kernel -print0 | cpio --null --create --format=newc >> ../myinitrd
-# find kernel -print0 | cpio -R 0:0 -o -H newc >> ../myinitrd
-cd ../early3
-find . -print0 | cpio --null --create --format=newc >> ../myinitrd
-cd ../main
-find . | cpio --create --format=newc | lz4 -9 -l >> ../myinitrd
-# find . | cpio -R 0:0 -o -H newc | lz4 -9 -l >> ../myinitrd
+# The initrd is a row of uncompressed early archives (microcode, firmware;
+# early2 held the kernel dir up to 24.04) followed by the compressed main
+# archive, compressed as set in its own initramfs.conf
+: > myinitrd
+for PART in early early2 early3 early4 ; do
+   if [ -d "$PART" ] ; then
+      (cd "$PART" && find . -print0 | cpio --null --create --format=newc) >> myinitrd
+   fi
+done
+case `sed -n 's/^COMPRESS=//p' main/conf/initramfs.conf` in
+   zstd) INITRD_COMPRESSOR="zstd -q -10 -T0" ;;
+   *) INITRD_COMPRESSOR="lz4 -9 -l" ;;
+esac
+echo "initrd main archive: $INITRD_COMPRESSOR"
+(cd main && find . | cpio --create --format=newc | $INITRD_COMPRESSOR) >> myinitrd
 
-cd ..
 # cat initrd.micro initrd.lz4 > initrd
 # rm initrd.micro initrd.lz4
 # mv initrd extract-cd/casper/initrd
@@ -528,6 +604,31 @@ echo "======================================"
 
 # cp "$GIT_DIR/desktop-conf/isolinux/splash.png" extract-cd/isolinux/splash.png
 # cp "$GIT_DIR/desktop-conf/isolinux/splash.pcx" extract-cd/isolinux/splash.pcx
+
+if [ "$LAYERED_IMAGE" = "yes" ] ; then
+   echo
+   echo "Installer settings for the merged image..."
+   echo "======================================"
+   # Calamares unpacks filesystem.squashfs instead of the stacked layers,
+   # runs initramfs-tools (from the live layer) instead of dracut and
+   # removes the live-only packages afterwards
+   CALAMARES_DIR=edit/etc/calamares
+   if [ ! -f "$CALAMARES_DIR"/settings.conf ] ; then
+      echo "ERROR: $CALAMARES_DIR/settings.conf not found." >&2
+      exit 1
+   fi
+   sudo cp "$GIT_DIR"/desktop-conf/calamares/unpackfs.conf \
+      "$GIT_DIR"/desktop-conf/calamares/packages.conf \
+      "$GIT_DIR"/desktop-conf/calamares/initramfs.conf "$CALAMARES_DIR"/modules/
+   sudo rm -f "$CALAMARES_DIR"/modules/stacked_squashfs.flag
+   sudo sed -i -e 's/^\([[:space:]]*\)- dracutlukscfg$/\1- initramfscfg/' \
+      -e 's/^\([[:space:]]*\)- dracut$/\1- initramfs/' "$CALAMARES_DIR"/settings.conf
+   if grep -q -E '^[[:space:]]*- dracut' "$CALAMARES_DIR"/settings.conf || \
+      ! grep -q -E '^[[:space:]]*- initramfs$' "$CALAMARES_DIR"/settings.conf ; then
+      echo "ERROR: could not switch Calamares from dracut to initramfs." >&2
+      exit 1
+   fi
+fi
 
 echo
 echo "Regenerating manifest..."
@@ -548,7 +649,7 @@ echo
 echo "Compressing filesystem..."
 echo "======================================"
 #Compress filesystem
-sudo rm extract-cd/casper/filesystem.squashfs
+sudo rm -f extract-cd/casper/filesystem.squashfs
 if ! sudo mksquashfs edit extract-cd/casper/filesystem.squashfs ; then
    echo "ERROR: mksquashfs failed, edit/ is kept." >&2
    exit 1
