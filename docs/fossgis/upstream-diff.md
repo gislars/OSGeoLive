@@ -64,6 +64,20 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** upstream-tauglich (zusammen mit dem Eintrag oben)
 - **Merge:** `fix/build-copy-tracked-only`
 
+### Lubuntu-Image: aktuelles Point-Release, Prüfsumme, Abbruch bei Fehlern
+
+- **Dateien:** `bin/build_chroot.sh`
+- **Was:** `ISO_RELEASE` von 24.04.2 auf 24.04.5. Der Build prüft die SHA256-Summe
+  des Images gegen `SHA256SUMS` von cdimage und bricht ab, wenn Download,
+  Prüfsumme, Mount, die EFI-Partition oder `unsquashfs` scheitern. Die Aufräumphase
+  entfernt zusätzlich `squashfs-root` und `myinitrd` abgebrochener Läufe.
+- **Warum:** cdimage hält nur das neueste Point-Release einer Serie vor; 24.04.2
+  lieferte 404. Ohne Abbruch lief das Skript mit Dutzenden Folgefehlern bis zum
+  Ende weiter.
+- **Einordnung:** upstream-tauglich (Upstream hat dasselbe Problem). Die Version
+  wird mit `build/resolute-base` ohnehin 26.04.1.
+- **Merge:** `fix/build-iso-download`
+
 ### Vorgabe-Repository ist der Fork
 
 - **Dateien:** `bin/build_chroot.sh`, `bin/inchroot.sh`, `bin/bootstrap.sh`
@@ -128,4 +142,4 @@ GIS-Stack und Anwendungen ergänzt.
 
 | Komponente | OSGeoLive 17.0 | FOSSGIS 2027 | Einordnung |
 |---|---|---|---|
-| Basis | Lubuntu 24.04.2 | Lubuntu 24.04.2 (26.04 folgt) | |
+| Basis | Lubuntu 24.04.2 | Lubuntu 24.04.5 (26.04.1 folgt) | upstream-tauglich |
