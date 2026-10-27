@@ -129,6 +129,8 @@ rm -rf "$BUILD_DIR"/extract-cd
 rm -rf "$BUILD_DIR"/mnt
 rm -f "$BUILD_DIR"/*.partition
 rm -rf "$BUILD_DIR"/wget-log
+rm -rf "$BUILD_DIR"/squashfs-root
+rm -f "$BUILD_DIR"/myinitrd
 
 echo
 echo "Installing build tools"
@@ -149,16 +151,28 @@ cd "$BUILD_DIR"
 #mv ubuntu-9.04-desktop-i386.iso ~/livecdtmp
 UBU_MIRROR="http://cdimage.ubuntu.com"
 UBU_RELEASE="24.04"
-ISO_RELEASE="24.04.2"
+# cdimage only keeps the latest point release of a series
+ISO_RELEASE="24.04.5"
 # ISO_RELEASE="22.04-beta"
 UBU_ISO="lubuntu-${ISO_RELEASE}-desktop-$ARCH.iso"
-wget -c --progress=dot:mega \
-   "$UBU_MIRROR/lubuntu/releases/$UBU_RELEASE/release/$UBU_ISO"
-   # "$UBU_MIRROR/lubuntu/releases/$UBU_RELEASE/beta/$UBU_ISO"
+UBU_ISO_URL="$UBU_MIRROR/lubuntu/releases/$UBU_RELEASE/release"
+   # UBU_ISO_URL="$UBU_MIRROR/lubuntu/releases/$UBU_RELEASE/beta"
+if ! wget -c --progress=dot:mega "$UBU_ISO_URL/$UBU_ISO" ; then
+   echo "ERROR: download of $UBU_ISO_URL/$UBU_ISO failed." >&2
+   exit 1
+fi
+if ! wget -q -O SHA256SUMS "$UBU_ISO_URL/SHA256SUMS" || \
+   ! grep " \*$UBU_ISO\$" SHA256SUMS | sha256sum -c - ; then
+   echo "ERROR: checksum of $UBU_ISO could not be verified, remove it to download again." >&2
+   exit 1
+fi
 #Start with a fresh copy
 #Mount the Desktop .iso
 mkdir -p mnt
-sudo mount -o loop "$UBU_ISO" mnt
+if ! sudo mount -o loop,ro "$UBU_ISO" mnt ; then
+   echo "ERROR: could not mount $UBU_ISO." >&2
+   exit 1
+fi
 echo "Lubuntu $ISO_RELEASE $ARCH image mounted."
 
 #Extract iso EFI and MBR partitions
@@ -167,6 +181,11 @@ MBR=mbr.partition
 dd if="$UBU_ISO" bs=1 count=446 of="$MBR"
 EFISKIP=$(/sbin/fdisk -l "$UBU_ISO" | fgrep '.iso2 ' | awk '{print $2}')
 EFISIZE=$(/sbin/fdisk -l "$UBU_ISO" | fgrep '.iso2 ' | awk '{print $4}')
+if [ -z "$EFISKIP" ] || [ -z "$EFISIZE" ] ; then
+   echo "ERROR: no EFI partition found in $UBU_ISO." >&2
+   sudo umount mnt
+   exit 1
+fi
 dd if="$UBU_ISO" bs=512 skip="$EFISKIP" count="$EFISIZE" of="$EFI"
 
 #Extract .iso contents into dir 'extract-cd' 
@@ -177,7 +196,11 @@ echo
 echo "Extracting squashfs from Lubuntu image"
 echo "======================================"
 #Extract the SquashFS filesystem 
-sudo unsquashfs mnt/casper/filesystem.squashfs
+if ! sudo unsquashfs mnt/casper/filesystem.squashfs ; then
+   echo "ERROR: could not extract mnt/casper/filesystem.squashfs." >&2
+   sudo umount mnt
+   exit 1
+fi
 #Does the above need to be done every time or can it be done once, and then
 # just make a fresh copy of the chroot for each builds
 sudo mv squashfs-root edit
