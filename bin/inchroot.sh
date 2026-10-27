@@ -26,20 +26,20 @@
 
 if [ "$#" -lt 2 ] || [ "$#" -gt 4 ]; then
     echo "Wrong number of arguments"
-    echo "Usage: inchroot.sh ARCH(i386 or amd64) MODE(release or nightly) [git_branch (default=master)] [github_username (default=OSGeo) or git clone url]"
+    echo "Usage: inchroot.sh ARCH(i386 or amd64) MODE(release or nightly) [git_branch (default=master)] [github_username (default=gislars) or git clone url]"
     exit 1
 fi
 
 if [ "$1" != "i386" ] && [ "$1" != "amd64" ] ; then
     echo "Did not specify build architecture, try using i386 or amd64 as an argument"
-    echo "Usage: inchroot.sh ARCH(i386 or amd64) MODE(release or nightly) [git_branch (default=master)] [github_username (default=OSGeo) or git clone url]"
+    echo "Usage: inchroot.sh ARCH(i386 or amd64) MODE(release or nightly) [git_branch (default=master)] [github_username (default=gislars) or git clone url]"
     exit 1
 fi
 ARCH="$1"
 
 if [ "$2" != "release" ] && [ "$2" != "nightly" ] ; then
     echo "Did not specify build mode, try using release or nightly as an argument"
-    echo "Usage: inchroot.sh ARCH(i386 or amd64) MODE(release or nightly) [git_branch (default=master)] [github_username (default=OSGeo) or git clone url]"
+    echo "Usage: inchroot.sh ARCH(i386 or amd64) MODE(release or nightly) [git_branch (default=master)] [github_username (default=gislars) or git clone url]"
     exit 1
 fi
 BUILD_MODE="$2"
@@ -49,10 +49,10 @@ if [ "$#" -eq 4 ]; then
     GIT_USER="$4"
 elif [ "$#" -eq 3 ]; then
     GIT_BRANCH="$3"
-    GIT_USER="OSGeo"
+    GIT_USER="gislars"
 else
     GIT_BRANCH="master"
-    GIT_USER="OSGeo"
+    GIT_USER="gislars"
 fi
 
 run_installer()
