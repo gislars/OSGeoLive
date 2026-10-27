@@ -18,7 +18,7 @@
 # web page "http://www.fsf.org/licenses/lgpl.html".
 #############################################################################
 
-QFIELD_VERSION=v4.1.9
+QFIELD_VERSION=v4.3.7
 
 ./diskspace_probe.sh "`basename $0`" begin
 BUILD_DIR=`pwd`
@@ -36,14 +36,15 @@ apt-get -q update
 apt-get --assume-yes install fuse3 libfuse2
 
 mkdir -p /usr/local/bin
+# Asset name since 4.x: qfield-vX.Y.Z-linux-x64.AppImage
 wget -c --progress=dot:mega \
-  https://github.com/opengisch/QField/releases/download/${QFIELD_VERSION}/qfield-${QFIELD_VERSION}-linux-x64.AppImage \
+  "https://github.com/opengisch/QField/releases/download/${QFIELD_VERSION}/qfield-${QFIELD_VERSION}-linux-x64.AppImage" \
   -O /usr/local/bin/qfield
 chmod +x /usr/local/bin/qfield
 
 mkdir -p /usr/local/share/icons
 wget -c --progress=dot:mega \
-  https://github.com/opengisch/QField/raw/${QFIELD_VERSION}/images/icons/qfield_logo.svg \
+  "https://github.com/opengisch/QField/raw/${QFIELD_VERSION}/images/icons/qfield_logo.svg" \
   -O /usr/local/share/icons/qfield_logo.svg
 
 #### install desktop icon ####

@@ -1,13 +1,13 @@
 #!/bin/sh
 #############################################################################
 #
-# Purpose: This script will OpenLayers 6 (and OpenLayers 2.13.1 for legacy
-# demos in OSGeoLive)
+# Purpose: This script installs OpenLayers (current major) and OpenLayers
+#          2.13.1 for legacy demos on OSGeoLive.
 #
 #############################################################################
-# Copyright (c) 2009-2024 The Open Source Geospatial Foundation and others.
+# Copyright (c) 2009-2026 The Open Source Geospatial Foundation and others.
 # Licensed under the GNU LGPL version >= 2.1.
-# 
+#
 # This library is free software; you can redistribute it and/or modify it
 # under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation, either version 2.1 of the License,
@@ -22,7 +22,7 @@
 # Running:
 # =======
 # sudo service apache2 start
-# Then open a web browser and go to http://localhost/ol3/
+# Then open a web browser and go to http://localhost/openlayers/
 
 ./diskspace_probe.sh "`basename $0`" begin
 BUILD_DIR=`pwd`
@@ -34,10 +34,11 @@ fi
 USER_HOME="/home/$USER_NAME"
 TMP_DIR="/tmp/build_openlayers"
 
-OL2_VERSION="2.13.1" 
+OL2_VERSION="2.13.1"
 OL2_DIR=/var/www/html/ol2
 
-OPENLAYERS_VERSION="6.14.1"
+# From OpenLayers 10 the release archives are *-site.zip and *-package.zip.
+OPENLAYERS_VERSION="10.11.0"
 OPENLAYERS_DIR=/var/www/html/openlayers
 
 #
@@ -74,59 +75,59 @@ rm -rf "OpenLayers-$OL2_VERSION"
 rm "OpenLayers-$OL2_VERSION.tar.gz"
 
 #
-# Install OpenLayers
+# Install OpenLayers (site docs/examples + package dist)
 #
-echo "\nInstalling OpenLayers..."
+echo "\nInstalling OpenLayers $OPENLAYERS_VERSION..."
 
 cd "$TMP_DIR"
 
-OPENLAYERS_ARCHIVE_FULL="v$OPENLAYERS_VERSION.zip"
-if [ -f "$OPENLAYERS_ARCHIVE_FULL" ]
+OPENLAYERS_ARCHIVE_SITE="v${OPENLAYERS_VERSION}-site.zip"
+if [ -f "$OPENLAYERS_ARCHIVE_SITE" ]
 then
-   echo "OpenLayers $OPENLAYERS_VERSION full version has already been downloaded. Skipping download."
+   echo "OpenLayers $OPENLAYERS_VERSION site archive already downloaded."
 else
    wget -c --progress=dot:mega \
-      "https://github.com/openlayers/openlayers/releases/download/v$OPENLAYERS_VERSION/v$OPENLAYERS_VERSION.zip"
-   echo "OpenLayers $OPENLAYERS_VERSION full version download complete."
+      "https://github.com/openlayers/openlayers/releases/download/v${OPENLAYERS_VERSION}/${OPENLAYERS_ARCHIVE_SITE}"
 fi
 
-OPENLAYERS_ARCHIVE_DIST="v$OPENLAYERS_VERSION-dist.zip"
-if [ -f "$OPENLAYERS_ARCHIVE_DIST" ]
+OPENLAYERS_ARCHIVE_PACKAGE="v${OPENLAYERS_VERSION}-package.zip"
+if [ -f "$OPENLAYERS_ARCHIVE_PACKAGE" ]
 then
-   echo "OpenLayers $OPENLAYERS_VERSION distribution version has already been downloaded. Skipping download."
+   echo "OpenLayers $OPENLAYERS_VERSION package archive already downloaded."
 else
    wget -c --progress=dot:mega \
-      "https://github.com/openlayers/openlayers/releases/download/v$OPENLAYERS_VERSION/v$OPENLAYERS_VERSION-dist.zip"
-   echo "OpenLayers $OPENLAYERS_VERSION distribution version download complete."
+      "https://github.com/openlayers/openlayers/releases/download/v${OPENLAYERS_VERSION}/${OPENLAYERS_ARCHIVE_PACKAGE}"
 fi
 
-#
-# Unzip 
-#
-echo "\nUnzipping archive..."
-unzip -qo $OPENLAYERS_ARCHIVE_FULL
-unzip -qo $OPENLAYERS_ARCHIVE_DIST
-echo "Unzipping done"
+echo "\nUnzipping archives..."
+rm -rf "$TMP_DIR/ol_site" "$TMP_DIR/ol_package"
+mkdir -p "$TMP_DIR/ol_site" "$TMP_DIR/ol_package"
+unzip -qo "$OPENLAYERS_ARCHIVE_SITE" -d "$TMP_DIR/ol_site"
+unzip -qo "$OPENLAYERS_ARCHIVE_PACKAGE" -d "$TMP_DIR/ol_package"
 
-#
-# Replace assets url and workshop url
-#
-sed -i 's/..\/..\/..\/assets/https:\/\/openlayers.org\/assets/g' v$OPENLAYERS_VERSION/doc/*.html
-sed -i 's/..\/..\/..\/..\/assets/https:\/\/openlayers.org\/assets/g' v$OPENLAYERS_VERSION/doc/**/*.html
-sed -i 's/\/workshop\//https:\/\/openlayers.org\/workshop\//g' v$OPENLAYERS_VERSION/doc/index.html
-
-#
-# Copy to www
-#
 echo "\nCopying files to $OPENLAYERS_DIR"
-rsync -r v$OPENLAYERS_VERSION/* $OPENLAYERS_DIR
-rsync -r v$OPENLAYERS_VERSION-dist/* $OPENLAYERS_DIR/dist
+rm -rf "$OPENLAYERS_DIR"
+mkdir -p "$OPENLAYERS_DIR"
+rsync -a "$TMP_DIR/ol_site/" "$OPENLAYERS_DIR/"
+mkdir -p "$OPENLAYERS_DIR/dist"
+# Full browser build from the package archive
+if [ -d "$TMP_DIR/ol_package/dist" ] ; then
+   rsync -a "$TMP_DIR/ol_package/dist/" "$OPENLAYERS_DIR/dist/"
+fi
+if [ -f "$TMP_DIR/ol_package/ol.css" ] ; then
+   cp -f "$TMP_DIR/ol_package/ol.css" "$OPENLAYERS_DIR/dist/"
+fi
 echo "Copying done"
 
 #
-# Generate index page
+# Generate index page (docs live under en/latest/ since OL 10 site zips)
 #
 cd "$OPENLAYERS_DIR"
+
+APIDOC="en/latest/apidoc"
+EXAMPLES="en/latest/examples"
+[ -d "$APIDOC" ] || APIDOC="apidoc"
+[ -d "$EXAMPLES" ] || EXAMPLES="examples"
 
 echo "\nGenerating index file..."
 cat << EOF > "index.html"
@@ -134,13 +135,14 @@ cat << EOF > "index.html"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
+<title>OpenLayers $OPENLAYERS_VERSION</title>
 </head>
 <body>
 <h1>OpenLayers $OPENLAYERS_VERSION</h1>
 <p>Welcome to OpenLayers index page:</p>
 <ul>
-<li><a href="apidoc/">API Docs</a>: explore the project documentation</li>
-<li><a href="examples/">Examples</a>: see the project in action</li>
+<li><a href="$APIDOC/">API Docs</a>: explore the project documentation</li>
+<li><a href="$EXAMPLES/">Examples</a>: see the project in action</li>
 <li><a href="https://openlayers.org/">OpenLayers.org website</a></li>
 </ul>
 </body>
@@ -149,11 +151,18 @@ EOF
 echo "Index file generation done"
 
 #
-# Launch script and icon for OpenLayers to take you to a documentation 
-# page and examples listing
+# Launch script and icon
 #
 echo "\nGenerating launcher..."
-cp "$OPENLAYERS_DIR/apidoc/logo-70x70.png" /usr/share/pixmaps/openlayers.png
+if [ -f "$OPENLAYERS_DIR/theme/img/logo-light.svg" ] ; then
+   cp "$OPENLAYERS_DIR/theme/img/logo-light.svg" /usr/share/pixmaps/openlayers.svg
+   OL_ICON=openlayers
+elif [ -f "$OPENLAYERS_DIR/$APIDOC/logo-70x70.png" ] ; then
+   cp "$OPENLAYERS_DIR/$APIDOC/logo-70x70.png" /usr/share/pixmaps/openlayers.png
+   OL_ICON=openlayers
+else
+   OL_ICON=applications-internet
+fi
 
 if [ ! -e /usr/share/applications/openlayers.desktop ] ; then
    cat << EOF > /usr/share/applications/openlayers.desktop
@@ -164,7 +173,7 @@ Name=OpenLayers
 Comment=Sample constructions
 Categories=Application;Internet;
 Exec=firefox http://localhost/openlayers/ http://localhost/osgeolive/en/quickstart/openlayers_quickstart.html
-Icon=openlayers
+Icon=$OL_ICON
 Terminal=false
 StartupNotify=false
 EOF

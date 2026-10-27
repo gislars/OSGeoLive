@@ -35,7 +35,7 @@
 # =====
 # This script will install deegree-webservices
 #
-# deegree webservices version 3.6.0-pre2 runs with openjdk17 on Apache Tomcat 10.1.16
+# deegree webservices 3.6.x runs with OpenJDK 17 on Apache Tomcat 10.1
 #
 
 # Running:
@@ -61,7 +61,7 @@ USER_HOME="/home/$USER_NAME"
 TOMCAT_USER_NAME="tomcat"
 TOMCAT_SCRIPT_NAME="tomcat10"
 DEEGREE_WEB_APP_NAME="deegree"
-DEEGREE_VERSION="3.6.0-pre2"
+DEEGREE_VERSION="3.6.13"
 DEEGREE_ICON_NAME="deegree_desktop_48x48.png"
 DEEGREE_URL="http://localhost:8080/$DEEGREE_WEB_APP_NAME"
 DEEGREE_WAR_INSTALL_FOLDER="/var/lib/$TOMCAT_SCRIPT_NAME/webapps"
