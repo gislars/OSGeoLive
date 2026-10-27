@@ -147,6 +147,28 @@ cp /usr/local/share/osgeo-desktop/desktop-truster.desktop \
 cp /usr/local/share/osgeo-desktop/apache-fixer.desktop \
    /etc/skel/.config/autostart/
 
+# Unlock system keyring at session start with workshop default password
+cat << 'KEYRINGSCRIPT' > /usr/local/share/osgeo-desktop/keyring-unlock.sh
+#!/bin/sh
+echo -n 'user' | gnome-keyring-daemon --unlock 2>/dev/null || true
+KEYRINGSCRIPT
+chmod 755 /usr/local/share/osgeo-desktop/keyring-unlock.sh
+cat << EOF > "/usr/local/share/osgeo-desktop/keyring-unlock.desktop"
+[Desktop Entry]
+Type=Application
+Name=Keyring Unlock
+Comment=Unlock keyring with workshop password (user/user)
+Exec=/usr/local/share/osgeo-desktop/keyring-unlock.sh
+Terminal=false
+StartupNotify=false
+Hidden=false
+X-GNOME-Autostart-enabled=true
+EOF
+cp /usr/local/share/osgeo-desktop/keyring-unlock.desktop \
+   "$USER_HOME"/.config/autostart/
+cp /usr/local/share/osgeo-desktop/keyring-unlock.desktop \
+   /etc/skel/.config/autostart/
+
 cp "$BUILD_DIR/../desktop-conf/welcome_message.sh" \
    /usr/local/share/osgeo-desktop/
 cp "$BUILD_DIR/../desktop-conf/desktop-truster.sh" \

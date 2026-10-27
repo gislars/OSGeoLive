@@ -737,12 +737,35 @@ echo
 echo "Editing boot options and graphics..."
 echo "======================================"
 
+# FOSSGIS: German locale/keyboard/timezone on the live boot (casper)
+# shellcheck disable=SC1090
+. "$GIT_DIR"/fossgis/edition.conf
+CASPER_LOCALE_ARGS="locale=${LOCALE:-de_DE.UTF-8} keyboard-configuration/layoutcode=${KEYMAP:-de} timezone=${TIMEZONE:-Europe/Berlin}"
+for GRUB_CFG in extract-cd/boot/grub/grub.cfg extract-cd/EFI/boot/grub.cfg ; do
+   if [ -f "$GRUB_CFG" ] ; then
+      # Append once per linux line that already has boot=casper
+      if ! grep -q 'keyboard-configuration/layoutcode=' "$GRUB_CFG" ; then
+         sed -i -e "/boot=casper/ s|\$| ${CASPER_LOCALE_ARGS}|" "$GRUB_CFG"
+         echo "FOSSGIS: casper locale args in $GRUB_CFG"
+      fi
+   fi
+done
+
 # sed -i -e "s/Lubuntu/OSGeoLive/g" \
 #        -e "s/initrd quiet splash/initrd fsck.mode=skip quiet splash/g" \
 #     extract-cd/isolinux/txt.cfg
 
 # cp "$GIT_DIR/desktop-conf/isolinux/splash.png" extract-cd/isolinux/splash.png
 # cp "$GIT_DIR/desktop-conf/isolinux/splash.pcx" extract-cd/isolinux/splash.pcx
+
+# Calamares locale/keyboard presets (always, when Calamares is present)
+CALAMARES_DIR=edit/etc/calamares
+if [ -d "$CALAMARES_DIR/modules" ] ; then
+   sudo cp "$GIT_DIR"/desktop-conf/calamares/modules/locale.conf \
+      "$GIT_DIR"/desktop-conf/calamares/modules/keyboard.conf \
+      "$CALAMARES_DIR"/modules/
+   echo "FOSSGIS: Calamares locale/keyboard presets installed"
+fi
 
 if [ "$LAYERED_IMAGE" = "yes" ] ; then
    echo
@@ -751,7 +774,6 @@ if [ "$LAYERED_IMAGE" = "yes" ] ; then
    # Calamares unpacks filesystem.squashfs instead of the stacked layers,
    # runs initramfs-tools (from the live layer) instead of dracut and
    # removes the live-only packages afterwards
-   CALAMARES_DIR=edit/etc/calamares
    if [ ! -f "$CALAMARES_DIR"/settings.conf ] ; then
       echo "ERROR: $CALAMARES_DIR/settings.conf not found." >&2
       exit 1
