@@ -3,6 +3,11 @@
 Dieses Repository ist der FOSSGIS-Fork von OSGeoLive. Was sich gegenüber OSGeo
 unterscheidet, steht in [upstream-diff.md](upstream-diff.md).
 
+Vor jedem Build und jeder Änderung an Build-Skripten:
+[build-safety.md](build-safety.md). Der Build läuft als root auf dem Arbeitsrechner;
+dort stehen zwei Vorfälle und die Regeln, die daraus folgen. Regeln für
+KI-Assistenten: [`AGENTS.md`](../../AGENTS.md).
+
 > Gerüst, wird mit dem Branch `docs/fossgis-build` vervollständigt.
 
 ## Verzeichnisse
