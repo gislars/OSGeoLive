@@ -29,10 +29,12 @@ USER_HOME="/home/$USER_NAME"
 TMP="/tmp/build_geoserver"
 INSTALL_FOLDER="/usr/local/lib"
 BIN="/usr/local/bin"
-GS_VERSION="2.27.1"
+GS_VERSION="3.0.2"
 GS_HOME="$INSTALL_FOLDER/geoserver-$GS_VERSION"
 GS_PORT=8082
 DOC_DIR="$GS_HOME/doc"
+# Official SourceForge files (OSGeo livedvd cache may lag behind new majors).
+GS_SF="https://downloads.sourceforge.net/project/geoserver/GeoServer/$GS_VERSION"
 
 
 ### Setup things... ###
@@ -55,12 +57,10 @@ cd "$TMP"
 ### Download and unpack GeoServer ###
 
 ## get GeoServer
-echo "Getting GeoServer"
+echo "Getting GeoServer $GS_VERSION"
 wget -c --progress=dot:mega \
    -O geoserver-$GS_VERSION-bin.zip \
-   "http://download.osgeo.org/livedvd/data/geoserver/geoserver-$GS_VERSION-bin.zip"
-## Cached version of
-# "http://sourceforge.net/projects/geoserver/files/GeoServer/$GS_VERSION/geoserver-$GS_VERSION-bin.zip/download"
+   "$GS_SF/geoserver-$GS_VERSION-bin.zip"
 
 ## unpack it to /usr/lib overwriting eventual existing copy
 echo "Unpacking GeoServer in $GS_HOME"
@@ -82,8 +82,10 @@ sed -i "1 i # Define Java home\nJAVA_HOME=/usr/lib/jvm/default-java; export JAVA
 sed -i "1 i # Define Java home\nJAVA_HOME=/usr/lib/jvm/default-java; export JAVA_HOME\n# Force proper GeoServer home\nGEOSERVER_HOME=$GS_HOME; export GEOSERVER_HOME\n" \
    "$GS_HOME/bin/shutdown.sh"
 
-## Make Jetty run on a different port
-sed -i -e "s/8080/$GS_PORT/g" "$GS_HOME"/start.ini
+## Make Jetty run on a different port (jetty.http.port in start.ini)
+sed -i -e "s/^jetty.http.port=.*/jetty.http.port=$GS_PORT/" "$GS_HOME"/start.ini
+grep -q "^jetty.http.port=$GS_PORT" "$GS_HOME"/start.ini || \
+   sed -i -e "s/8080/$GS_PORT/g" "$GS_HOME"/start.ini
 
 ## Disable logging to stdout
 sed -i -e "s|<stdOutLogging>true</stdOutLogging>|<stdOutLogging>false</stdOutLogging>|g" "$GS_HOME"/data_dir/logging.xml
@@ -168,9 +170,7 @@ mkdir -p "$DOC_DIR"
 echo "Getting GeoServer documentation"
 wget --progress=dot:mega \
   -O "geoserver-$GS_VERSION-htmldoc.zip" \
-  "http://download.osgeo.org/livedvd/data/geoserver/geoserver-$GS_VERSION-htmldoc.zip"
-## Cached version of
-# "http://sourceforge.net/projects/geoserver/files/GeoServer/$GS_VERSION/geoserver-$GS_VERSION-htmldoc.zip/download"
+  "$GS_SF/geoserver-$GS_VERSION-htmldoc.zip"
 
 ## unpack it
 echo "Installing GeoServer documentation"
@@ -182,9 +182,7 @@ unzip -o -q "geoserver-$GS_VERSION-htmldoc.zip" -d "$DOC_DIR"
 echo "Getting INSPIRE extension"
 wget --progress=dot:mega \
   -O "geoserver-$GS_VERSION-inspire-plugin.zip" \
-  "http://download.osgeo.org/livedvd/data/geoserver/geoserver-$GS_VERSION-inspire-plugin.zip"
-## Cached version of
-# "http://sourceforge.net/projects/geoserver/files/GeoServer/$GS_VERSION/extensions/geoserver-$GS_VERSION-inspire-plugin.zip/download"
+  "$GS_SF/extensions/geoserver-$GS_VERSION-inspire-plugin.zip"
 echo "Installing INSPIRE extension"
 unzip -o -q "geoserver-$GS_VERSION-inspire-plugin.zip" -d "$GS_HOME/webapps/geoserver/WEB-INF/lib"
 
@@ -194,9 +192,7 @@ unzip -o -q "geoserver-$GS_VERSION-inspire-plugin.zip" -d "$GS_HOME/webapps/geos
 echo "Getting CSS extension"
 wget --progress=dot:mega \
   -O "geoserver-$GS_VERSION-css-plugin.zip" \
-  "http://download.osgeo.org/livedvd/data/geoserver/geoserver-$GS_VERSION-css-plugin.zip"
-## Cached version of
-# "http://sourceforge.net/projects/geoserver/files/GeoServer/$GS_VERSION/extensions/geoserver-$GS_VERSION-css-plugin.zip/download"
+  "$GS_SF/extensions/geoserver-$GS_VERSION-css-plugin.zip"
 echo "Installing CSS extension"
 unzip -o -q "geoserver-$GS_VERSION-css-plugin.zip" -d "$GS_HOME/webapps/geoserver/WEB-INF/lib"
 
@@ -206,9 +202,7 @@ unzip -o -q "geoserver-$GS_VERSION-css-plugin.zip" -d "$GS_HOME/webapps/geoserve
 echo "Getting NetCDF extension"
 wget --progress=dot:mega \
   -O "geoserver-$GS_VERSION-netcdf-plugin.zip" \
-  "http://download.osgeo.org/livedvd/data/geoserver/geoserver-$GS_VERSION-netcdf-plugin.zip"
-## Cached version of
-# "http://sourceforge.net/projects/geoserver/files/GeoServer/$GS_VERSION/extensions/geoserver-$GS_VERSION-netcdf-plugin.zip/download"
+  "$GS_SF/extensions/geoserver-$GS_VERSION-netcdf-plugin.zip"
 echo "Installing NetCDF extension"
 unzip -o -q "geoserver-$GS_VERSION-netcdf-plugin.zip" -d "$GS_HOME/webapps/geoserver/WEB-INF/lib"
 
@@ -218,9 +212,7 @@ unzip -o -q "geoserver-$GS_VERSION-netcdf-plugin.zip" -d "$GS_HOME/webapps/geose
 echo "Getting Vector Tiles extension"
 wget --progress=dot:mega \
   -O "geoserver-$GS_VERSION-vectortiles-plugin.zip" \
-  "http://download.osgeo.org/livedvd/data/geoserver/geoserver-$GS_VERSION-vectortiles-plugin.zip"
-## Cached version of
-# "http://sourceforge.net/projects/geoserver/files/GeoServer/$GS_VERSION/extensions/geoserver-$GS_VERSION-vectortiles-plugin.zip/download"
+  "$GS_SF/extensions/geoserver-$GS_VERSION-vectortiles-plugin.zip"
 echo "Installing Vector Tiles extension"
 unzip -o -q "geoserver-$GS_VERSION-vectortiles-plugin.zip" -d "$GS_HOME/webapps/geoserver/WEB-INF/lib"
 

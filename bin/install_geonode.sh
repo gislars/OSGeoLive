@@ -35,7 +35,9 @@ DOC_DIR="$DATA_DIR/doc"
 APACHE_CONF="/etc/apache2/sites-available/geonode.conf"
 GEONODE_DB="geonode_app"
 GEONODE_STORE="geonode_data"
-GEOSERVER_VERSION="2.27.1"
+# Keep in sync with install_geoserver.sh. GeoNode is disabled in inchroot.sh
+# (vm_only); re-enable only after confirming GeoNode supports this GeoServer.
+GEOSERVER_VERSION="3.0.2"
 GEOSERVER_PATH="/usr/local/lib/geoserver-$GEOSERVER_VERSION"
 GEONODE_BIN_FOLDER="/usr/local/share/geonode"
 GEONODE_DIR="/usr/lib/python3/dist-packages/geonode"

@@ -442,3 +442,9 @@ GIS-Stack und Anwendungen ergänzt.
 | GDAL (Bibliothek) | libgdal37 (3.11, PPA) | libgdal38 (3.12) | upstream-tauglich |
 | GRASS | 8.4 (PPA/Pinning) | 8.4.2 (Ubuntu) | upstream-tauglich |
 | QGIS | 3.40 (PPA) | 4.2.x (qgis.org resolute) | upstream-tauglich |
+| GeoServer | 2.27.x | 3.0.2 | upstream-tauglich |
+| OpenLayers | 6.14.1 | 10.11.0 | upstream-tauglich |
+| QField | v4.1.9 | v4.3.7 | upstream-tauglich |
+| Cesium | 1.132 | 1.146 | upstream-tauglich |
+| deegree | 3.6.0-pre2 | 3.6.13 | upstream-tauglich |
+| Mapbender | 4.2.3 | 5.0.2 | upstream-tauglich |
