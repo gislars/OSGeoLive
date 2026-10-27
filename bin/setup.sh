@@ -144,7 +144,12 @@ apt-get remove --yes \
    libsane1 libsane-common libsane-hpaio libieee1284-3t64
 
 # regen initrd
-depmod
+# (for the kernels of the image, a plain depmod uses the build host's kernel)
+for KERNEL_DIR in /lib/modules/* ; do
+   if [ -d "$KERNEL_DIR" ] ; then
+      depmod "`basename "$KERNEL_DIR"`"
+   fi
+done
 
 # Remove unused home directories
 #rm -fr "$USER_HOME"/Downloads

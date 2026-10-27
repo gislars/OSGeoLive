@@ -164,6 +164,26 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** upstream-tauglich
 - **Merge:** `feature/build-cache`
 
+### Chroot nie mit eingehängtem /dev löschen
+
+- **Dateien:** `bin/build_chroot.sh`, `bin/setup.sh`
+- **Was:** `edit/` wird nur noch über `remove_chroot` gelöscht: Alles, was darunter
+  eingehängt ist, wird vorher ausgehängt (lazy), bleibt trotzdem etwas übrig, bricht
+  der Build ab; `rm` läuft mit `--one-file-system`. Ist `edit/dev` nach dem Chroot
+  belegt, hängt der Build es lazy aus. Laufen danach noch Prozesse mit Root im
+  Chroot (Teilbuild ohne `setdown.sh`), bricht der Build vor dem Packen ab. Vor
+  `mksquashfs` darf unter `edit/` nichts mehr eingehängt sein. Die apt-Quelle
+  `cdrom.sources` des Live-Systems wird während des Chroots beiseitegelegt und danach
+  zurückgestellt. `depmod` läuft für die Kernel des Images statt für den Kernel des
+  Build-Rechners.
+- **Warum:** Im ersten 26.04-Teilbuild war `edit/dev` beim Aushängen belegt. Das
+  folgende `rm -rf edit` leerte das `/dev` des Build-Rechners (Neustart nötig), und
+  `mksquashfs` packte das `/dev` des Hosts ins Image. Ohne Abbruch bei laufenden
+  Prozessen änderte PostgreSQL Dateien während des Packens. `cdrom.sources` zeigt auf
+  `/cdrom`, das es im Chroot nicht gibt; jedes `apt-get update` meldete einen Fehler.
+- **Einordnung:** upstream-tauglich (das Risiko steht schon als Kommentar im Skript)
+- **Merge:** `build/resolute-base`
+
 ## Basis Lubuntu 26.04
 
 ### Geschichtetes Lubuntu-Image wird zusammengeführt
@@ -175,9 +195,11 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   `minimal.standard.live`). `build_chroot.sh` hängt die Kette per overlayfs
   zusammen, kopiert sie nach `edit/` und packt am Ende wie bisher eine
   `filesystem.squashfs`. `conf/conf.d/default-layer.conf` fliegt aus der initrd,
-  damit casper diese eine Datei nimmt. Die initrd wird mit allen Teilen (Microcode,
-  Firmware, Hauptteil) und dem Kompressor aus `conf/initramfs.conf` (zstd) neu
-  gepackt. Für Calamares ersetzt der Build `unpackfs.conf` (nur
+  damit casper diese eine Datei nimmt. Die initrd wird mit `3cpio -x -s` in
+  getrennte Archive (`early`/`main`) entpackt (26.04 `unmkinitramfs` mischt sie
+  sonst), dann mit dem Kompressor aus `conf/initramfs.conf` (zstd) neu gepackt.
+  Fehlt `main/conf`, bricht der Build ab. Für Calamares ersetzt der Build
+  `unpackfs.conf` (nur
   `filesystem.squashfs`), entfernt `stacked_squashfs.flag`, stellt in
   `settings.conf` `dracut`/`dracutlukscfg` auf `initramfs`/`initramfscfg` um und
   ergänzt `packages.conf` um das Entfernen der Live-Pakete (casper, Calamares,
@@ -260,6 +282,34 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Was:** Übersicht aller Abweichungen und ein Bericht zur Gegenprobe.
 - **Einordnung:** FOSSGIS-spezifisch
 - **Merge:** `docs/upstream-diff`
+
+### Sicherheitsregeln für Build und KI-Assistenten
+
+- **Dateien:** `AGENTS.md`, `docs/fossgis/build-safety.md`, `docs/fossgis/README.md`
+- **Was:** verbindliche Regeln für KI-Assistenten (`AGENTS.md`) und ein Dokument mit
+  zwei Vorfällen vom 27.10.2026, den versagten Sicherungen, Regeln für Build-Skripte
+  und den Stand der Schutzmaßnahmen.
+- **Warum:** Ein Teilbuild löschte über das eingebundene `/dev` die Gerätedateien des
+  Build-Rechners; ein danach empfohlener Reparaturbefehl beendete die Sitzung des
+  Nutzers. Das darf sich nicht wiederholen.
+- **Einordnung:** FOSSGIS-spezifisch (die Build-Regeln sind upstream-tauglich)
+- **Merge:** `docs/build-safety`
+
+### Build nur in einer Wegwerf-VM
+
+- **Dateien:** `fossgis/tools/builder_vm.sh`, `fossgis/tools/host_guard.sh`,
+  `fossgis/tools/check_clean.allow`, `AGENTS.md`, `docs/fossgis/README.md`,
+  `docs/fossgis/build-safety.md`
+- **Was:** `builder_vm.sh` startet eine QEMU/KVM-VM ohne gemeinsame Verzeichnisse mit
+  dem Host, schickt den committeten Stand als Git-Bundle und `local/` per rsync,
+  startet den Build in der VM und holt ISO, Log und neue Cache-Dateien zurück.
+  Verbindungen der VM zum Host (10.0.2.2) werden verworfen. `host_guard.sh`
+  vergleicht vor und nach dem Build `/dev`, Mounts und freien Platz auf dem Host.
+  `AGENTS.md` verbietet Builds direkt auf dem Host.
+- **Warum:** Der Build braucht root; Fehler im Chroot dürfen den Build-Rechner nicht
+  mehr erreichen können.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `chore/builder-vm`
 
 ## Hinweise
 

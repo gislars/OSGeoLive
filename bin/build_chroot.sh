@@ -177,6 +177,25 @@ echo "==============================================================="
 echo "Start Building $ISO_NAME"
 echo "==============================================================="
 
+# Mount points below a directory, deepest first
+mounts_below() {
+    awk -v d="$1" '$2 == d || index($2, d "/") == 1 {print $2}' /proc/self/mounts | sort -r
+}
+
+# rm -rf for the chroot: edit/dev is a bind mount of the host's /dev, so
+# everything below it is detached first and rm never leaves the filesystem
+remove_chroot() {
+    for MOUNTPOINT in `mounts_below "$1"` ; do
+        sudo umount -l "$MOUNTPOINT"
+    done
+    if [ -n "`mounts_below "$1"`" ] ; then
+        echo "ERROR: still mounted below $1, not deleting it:" >&2
+        mounts_below "$1" >&2
+        exit 1
+    fi
+    sudo rm -rf --one-file-system "$1"
+}
+
 #Some initial cleaning, including leftovers of an aborted previous build
 # The cache mounts come first, rm -rf edit would otherwise empty the cache
 for MOUNTPOINT in edit/var/cache/apt/archives edit/var/cache/fossgis-downloads \
@@ -198,7 +217,8 @@ for MOUNTPOINT in "$BUILD_DIR"/layers/merged "$BUILD_DIR"/layers/*.squashfs ; do
     fi
 done
 rm -rf "$BUILD_DIR"/layers
-rm -rf "$BUILD_DIR"/edit
+remove_chroot "$BUILD_DIR"/edit
+rm -f "$BUILD_DIR"/cdrom.sources.parked
 rm -rf "$BUILD_DIR"/lzfiles
 rm -rf "$BUILD_DIR"/extract-cd
 rm -rf "$BUILD_DIR"/mnt
@@ -356,6 +376,13 @@ sudo cp /etc/hosts edit/etc/
 # least temporarily until reboot
 sudo mount --bind /dev/ edit/dev
 
+# The apt source of the live system for the disc (used by Calamares) has no
+# /cdrom in the chroot and makes every apt-get update fail, park it meanwhile
+CDROM_SOURCES=edit/etc/apt/sources.list.d/cdrom.sources
+if [ -f "$CDROM_SOURCES" ] ; then
+   sudo mv "$CDROM_SOURCES" "$BUILD_DIR"/cdrom.sources.parked
+fi
+
 echo
 echo "Starting build in chroot"
 echo "======================================"
@@ -453,7 +480,19 @@ echo
 echo "Finished chroot part"
 echo "======================================"
 cd "$BUILD_DIR"
-sudo umount edit/dev
+CHROOT_PROCESSES=`for PROC_DIR in /proc/[0-9]* ; do
+   if [ "$(sudo readlink "$PROC_DIR"/root 2>/dev/null)" = "$BUILD_DIR/edit" ] ; then
+      ps -o pid=,args= -p "${PROC_DIR#/proc/}"
+   fi
+done`
+if ! sudo umount edit/dev ; then
+   # Detach it anyway, neither mksquashfs nor rm -rf may reach the host's /dev
+   echo "WARNING: edit/dev is busy, detaching it lazily." >&2
+   sudo umount -l edit/dev
+fi
+if [ -f "$BUILD_DIR"/cdrom.sources.parked ] ; then
+   sudo mv "$BUILD_DIR"/cdrom.sources.parked "$CDROM_SOURCES"
+fi
 
 # Detach the cache before the chroot is packed, normally setdown.sh did it
 for MOUNTPOINT in edit/var/cache/apt/archives edit/var/cache/fossgis-downloads ; do
@@ -471,6 +510,18 @@ if grep -q "$WGET_WRAPPER_MARK" edit/usr/local/bin/wget 2>/dev/null ; then
 fi
 if [ -d "$FOSSGIS_CACHE_DIR" ] && [ -n "$SUDO_USER" ] ; then
    sudo chown -R "$SUDO_USER": "$FOSSGIS_CACHE_DIR"
+fi
+if [ -n "`mounts_below "$BUILD_DIR"/edit`" ] ; then
+   echo "ERROR: still mounted below edit/, it would end up in the image:" >&2
+   mounts_below "$BUILD_DIR"/edit >&2
+   exit 1
+fi
+if [ -n "$CHROOT_PROCESSES" ] ; then
+   echo "ERROR: processes still run in the chroot and would change the image" \
+        "while it is packed. A partial build list that starts services must" \
+        "end with setdown.sh:" >&2
+   echo "$CHROOT_PROCESSES" >&2
+   exit 1
 fi
 
 #Compress osgeolive build logs
@@ -499,10 +550,34 @@ echo "======================================"
 # dd if=./edit/initrd bs=1 count=$offset > initrd.micro
 # rm edit/initrd
 
+# 24.04 unmkinitramfs wrote early/early2/main. 26.04 unmkinitramfs (3cpio)
+# merges every archive into the target directory, so the early microcode
+# would be recompressed with the rest. Split them with 3cpio -s instead.
 mkdir lzfiles
 cd lzfiles
-cp ../extract-cd/casper/initrd .
-unmkinitramfs initrd .
+if command -v 3cpio > /dev/null ; then
+   if ! 3cpio -x -s archive -C . ../extract-cd/casper/initrd ; then
+      echo "ERROR: could not unpack extract-cd/casper/initrd" >&2
+      exit 1
+   fi
+   LAST=`ls -d archive[0-9]* 2>/dev/null | sort -V | tail -n 1`
+   [ -n "$LAST" ] && mv "$LAST" main
+   N=0
+   for PART in `ls -d archive[0-9]* 2>/dev/null | sort -V` ; do
+      N=`expr $N + 1`
+      if [ "$N" -eq 1 ] ; then
+         mv "$PART" early
+      else
+         mv "$PART" "early$N"
+      fi
+   done
+else
+   unmkinitramfs ../extract-cd/casper/initrd .
+fi
+if [ ! -f main/conf/initramfs.conf ] ; then
+   echo "ERROR: could not unpack extract-cd/casper/initrd (no main/conf)" >&2
+   exit 1
+fi
 # lz4 -dc ../initrd.lz4 | cpio -imvd --no-absolute-filenames
 
 #Perhaps not needed since this also happens in chroot part.
@@ -576,7 +651,7 @@ sed -i -e "s/.ubuntu ${ISO_RELEASE} LTS \"[^\"]*\"/OSGeoLive ${VERSION_MODE}/" \
 # early2 held the kernel dir up to 24.04) followed by the compressed main
 # archive, compressed as set in its own initramfs.conf
 : > myinitrd
-for PART in early early2 early3 early4 ; do
+for PART in early early2 early3 early4 early5 early6 ; do
    if [ -d "$PART" ] ; then
       (cd "$PART" && find . -print0 | cpio --null --create --format=newc) >> myinitrd
    fi
@@ -670,7 +745,7 @@ chmod -w extract-cd/casper/filesystem.size
 
 #this is now compressed in squashfs so we delete to save VM disk space
 cd "$BUILD_DIR"
-sudo rm -rf edit
+remove_chroot "$BUILD_DIR"/edit
 
 #Set an image name in extract-cd/README.diskdefines
 # cp "$GIT_DIR/desktop-conf/casper/README.diskdefines" extract-cd/README.diskdefines
