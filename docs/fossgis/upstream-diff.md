@@ -420,6 +420,28 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** temporär
 - **Merge:** `build/resolute-app-ports`
 
+## Konferenzstadt OSM
+
+### Heidelberg-Extrakt (PBF + XML vor dem Build)
+
+- **Dateien:** `fossgis/prepare_data.sh`, `bin/extract_osm_by_relation.py`,
+  `bin/README_extract_osm_by_relation.md`, `fossgis/edition.conf`,
+  `bin/install_osm.sh`, `bin/load_postgis.sh`, `bin/install_pgrouting.sh`,
+  `bin/build_chroot.sh`
+- **Was:** Auf dem Host erzeugt `prepare_data.sh` aus dem Geofabrik-PBF und der
+  Relation `OSM_RELATION` die Dateien `local/data/osm/<MAP_CITY>.osm.pbf`,
+  `.osm` und `.stamp`. Der Build bricht ohne passende Dateien ab. Im Image liegt
+  nur die PBF-Datei als `feature_city.osm.pbf`; das XML dient osm2pgrouting und
+  bleibt in `fossgis-local` (nicht im ISO). `load_postgis.sh` importiert die PBF
+  mit osm2pgsql **flex** und `app-conf/osm2pgsql/osgeolive.lua` (SRID 4326,
+  kompatibel zu `default.style`). Leaflet bekommt `map_location.js` aus den
+  `MAP_*`-Werten. Mindestschema: `fossgis/reference/osm_local_contract.txt`.
+  Der vollstaendige Schema-Vergleich 1.11 gegen 2.2 folgt als manueller Test.
+- **Warum:** Konferenzstadt statt Auckland; kein bz2 mehr im Image; pgsql-Ausgabe
+  von osm2pgsql 2.x ist veraltet.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `feature/osm-heidelberg`
+
 ## Workshop-Werkzeuge
 
 ### Docker, Node.js (NVM) und VS Code

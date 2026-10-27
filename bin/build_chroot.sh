@@ -461,6 +461,31 @@ if [ -f "$FOSSGIS_TMP"/local.env ] ; then
    sudo chmod 600 "$FOSSGIS_TMP"/local.env
 fi
 
+# OSM extracts from fossgis/prepare_data.sh (PBF + XML + stamp)
+if [ -f "$GIT_DIR"/fossgis/edition.conf ] ; then
+   # shellcheck disable=SC1090
+   . "$GIT_DIR"/fossgis/edition.conf
+fi
+if [ -n "${MAP_CITY:-}" ] && [ -n "${OSM_RELATION:-}" ] ; then
+   OSM_DIR="$FOSSGIS_TMP/data/osm"
+   CITY_PBF="$OSM_DIR/${MAP_CITY}.osm.pbf"
+   CITY_OSM="$OSM_DIR/${MAP_CITY}.osm"
+   CITY_STAMP="$OSM_DIR/${MAP_CITY}.stamp"
+   if [ ! -f "$CITY_PBF" ] || [ ! -f "$CITY_OSM" ] || [ ! -f "$CITY_STAMP" ] ; then
+      echo "ERROR: missing OSM extract for $MAP_CITY under local/data/osm/" >&2
+      echo "Run: fossgis/prepare_data.sh" >&2
+      exit 1
+   fi
+   EXPECTED_SHA=`awk 'NR==1 {print $1}' "$CITY_STAMP"`
+   ACTUAL_SHA=`sha256sum "$CITY_PBF" | awk '{print $1}'`
+   if [ "$EXPECTED_SHA" != "$ACTUAL_SHA" ] ; then
+      echo "ERROR: $CITY_STAMP does not match $CITY_PBF" >&2
+      echo "Run: fossgis/prepare_data.sh" >&2
+      exit 1
+   fi
+   echo "FOSSGIS: OSM extract $MAP_CITY ok (sha256=${ACTUAL_SHA})"
+fi
+
 # Local download cache, kept between builds: apt packages and the wget
 # downloads of the install scripts (fossgis/tools/wget_cache.sh). Disable
 # with FOSSGIS_CACHE="0" in local/local.env.

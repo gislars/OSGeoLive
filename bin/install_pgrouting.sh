@@ -40,7 +40,16 @@ fi
 USER_HOME="/home/$USER_NAME"
 
 TMP="/tmp/build_pgrouting"
-OSM_FILE="/usr/local/share/data/osm/feature_city.osm.bz2"
+# osm2pgrouting reads OSM XML only; FOSSGIS prepare_data.sh writes the XML
+# next to the PBF under fossgis-local (not shipped in the ISO).
+FOSSGIS_OSM_DIR="${FOSSGIS_DIR:-/usr/local/share/gisvm/fossgis-local}/data/osm"
+if [ -n "${MAP_CITY:-}" ] && [ -f "$FOSSGIS_OSM_DIR/${MAP_CITY}.osm" ] ; then
+   OSM_FILE="$FOSSGIS_OSM_DIR/${MAP_CITY}.osm"
+elif [ -e /usr/local/share/data/osm/feature_city.osm.bz2 ] ; then
+   OSM_FILE="/usr/local/share/data/osm/feature_city.osm.bz2"
+else
+   OSM_FILE=""
+fi
 OSM_DB="pgrouting"
 
 apt-get update -qq
@@ -74,21 +83,26 @@ sudo -u "$USER_NAME" createdb -E UTF8 "$OSM_DB"
 sudo -u "$USER_NAME" psql "$OSM_DB" -c 'CREATE EXTENSION postgis;'
 sudo -u "$USER_NAME" psql "$OSM_DB" -c 'CREATE EXTENSION pgrouting;'
 
-# Process sample data that comes with "install_osm.sh"
-if [ ! -e "$OSM_FILE" ] ; then
-	echo "ERROR: $OSM_FILE sample data is not available"
+# Process sample data from prepare_data.sh (XML) or upstream bz2
+if [ -z "$OSM_FILE" ] || [ ! -e "$OSM_FILE" ] ; then
+	echo "ERROR: OSM sample data is not available (run fossgis/prepare_data.sh)"
 	exit 1
 else
-	# unpack sample data
-	echo "unpack sample data"
-	bunzip2 "$OSM_FILE" -c > "$TMP/sampledata.osm"
+	case "$OSM_FILE" in
+	*.bz2)
+		echo "unpack sample data"
+		bunzip2 "$OSM_FILE" -c > "$TMP/sampledata.osm"
+		OSM_XML="$TMP/sampledata.osm"
+		;;
+	*)
+		OSM_XML="$OSM_FILE"
+		;;
+	esac
 
 	# Run osm2pgrouting converter
 	# NOTE: Conversion can take a a few minutes depending on the extent of the sample data.
-	# Assuming that the sample data won't be very big, it should be OK to run the conversion here, 
-	# otherwise it should be done in advance somehow (TODO).
 	echo "Run osm2pgrouting converter (this may take a while)"
-	sudo -u $USER_NAME osm2pgrouting -file "$TMP/sampledata.osm" \
+	sudo -u $USER_NAME osm2pgrouting -file "$OSM_XML" \
 	    -conf /usr/share/osm2pgrouting/mapconfig.xml \
 	    -dbname "$OSM_DB" \
 	    -user "$USER_NAME" \
