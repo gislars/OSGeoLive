@@ -5,7 +5,7 @@
 # for a demo 'World Borders' application
 #
 #############################################################################
-# Copyright (c) 2009-2024 The Open Source Geospatial Foundation and others.
+# Copyright (c) 2009-2026 The Open Source Geospatial Foundation and others.
 #
 # Licensed under the GNU LGPL.
 #
@@ -20,46 +20,41 @@
 # web page "http://www.fsf.org/licenses/lgpl.html".
 #############################################################################
 
-#
-# Requires:
-# =========
-# python, wget, unzip
-#
-# Uninstall:
-# ==========
-# sudo apt-get remove python-mapnik
-# rm -rf /usr/local/share/mapnik/
-
 ./diskspace_probe.sh "`basename $0`" begin
 BUILD_DIR=`pwd`
 ####
-
 
 if [ -z "$USER_NAME" ] ; then
    USER_NAME="user"
 fi
 USER_HOME="/home/$USER_NAME"
 
-# download, install, and setup demo Mapnik tile-serving application
-TMP="/tmp/build_mapnik"
 DATA_FOLDER="/usr/local/share"
 MAPNIK_DATA="$DATA_FOLDER/mapnik"
-BIN="/usr/local/bin"
+MAPNIK_PIP_VERSION="4.3.2"
 
-apt-get install --yes python3-mapnik
+. "$BUILD_DIR/tools/osgeolive_venv.sh"
 
+# System Mapnik; Python bindings and nik4 come from PyPI (removed from Debian).
+apt-get install --yes libmapnik4.2 mapnik-utils
 if [ $? -ne 0 ] ; then
-   echo 'ERROR: Package install failed! Aborting.'
+   echo 'ERROR: Mapnik package install failed! Aborting.' >&2
    exit 1
 fi
 
+if ! osgeolive_venv_pip "mapnik==$MAPNIK_PIP_VERSION" ; then
+   echo "ERROR: pip install mapnik==$MAPNIK_PIP_VERSION failed" >&2
+   exit 1
+fi
+
+# The official wheel may ship its own libmapnik/GDAL; note in upstream-diff.
 if [ ! -d "$MAPNIK_DATA" ] ; then
    echo "Creating $MAPNIK_DATA directory"
    mkdir -p "$MAPNIK_DATA"
 fi
 
 chmod -R 755 "$MAPNIK_DATA"
-sudo cp -f "$BUILD_DIR/../app-conf/mapnik/world_population.xml" \
+cp -f "$BUILD_DIR/../app-conf/mapnik/world_population.xml" \
     "$MAPNIK_DATA/world_population.xml"
 
 ####

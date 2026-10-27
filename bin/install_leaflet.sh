@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 2013-2024 The Open Source Geospatial Foundation and others.
+# Copyright (c) 2013-2026 The Open Source Geospatial Foundation and others.
 # Licensed under the GNU LGPL.
 #
 # This library is free software; you can redistribute it and/or modify it
@@ -24,17 +24,26 @@ if [ -z "$USER_NAME" ] ; then
 fi
 USER_HOME="/home/$USER_NAME"
 
-## use Bionic repos
+MARKERCLUSTER_VERSION="1.5.3"
+MARKERCLUSTER_URL="https://github.com/Leaflet/Leaflet.markercluster/archive/refs/tags/v${MARKERCLUSTER_VERSION}.tar.gz"
+JS_ROOT="/usr/share/javascript"
+MC_DEST="$JS_ROOT/leaflet-markercluster"
+
 apt-get update
 apt-get --assume-yes install libjs-leaflet
 apt-get --assume-yes install libjs-leaflet-geometryutil
-apt-get --assume-yes install libjs-leaflet-markercluster
 
-##-------------------------------------------------
-#add-apt-repository --yes ppa:johanvdw/leafletjs
-#add-apt-repository --yes --remove ppa:johanvdw/leafletjs
+# libjs-leaflet-markercluster is not in Ubuntu 26.04; install from upstream.
+TMP_MC=`mktemp -d`
+wget -c --progress=dot:mega -O "$TMP_MC/markercluster.tgz" "$MARKERCLUSTER_URL"
+tar -xzf "$TMP_MC/markercluster.tgz" -C "$TMP_MC"
+rm -rf "$MC_DEST"
+mkdir -p "$MC_DEST"
+cp -a "$TMP_MC/Leaflet.markercluster-${MARKERCLUSTER_VERSION}/dist/"* "$MC_DEST/"
+rm -rf "$TMP_MC"
 
 ln -s /usr/share/javascript/leaflet/ /var/www/html/leaflet
+ln -sfn "$MC_DEST" /var/www/html/leaflet-markercluster
 
 #add demo file
 cp -f ../app-conf/leaflet/leaflet-demo.html /var/www/html/

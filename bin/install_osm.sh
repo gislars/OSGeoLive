@@ -42,9 +42,18 @@ cd "$TMP_DIR"
 mkdir /usr/local/share/osm
 
 ##----------------------------------------------------------
-apt-get install --assume-yes osm2pgsql osmium-tool python3-osmapi nik4
+apt-get install --assume-yes osm2pgsql osmium-tool python3-osmapi
 apt-get install --assume-yes gpsd gpsd-clients
 apt-get install --assume-yes josm josm-l10n
+
+# nik4 left Debian; install into the shared OSGeoLive venv.
+. "$BUILD_DIR/tools/osgeolive_venv.sh"
+NIK4_VERSION="1.8.0"
+if ! osgeolive_venv_pip "nik4==$NIK4_VERSION" ; then
+   echo "ERROR: pip install nik4==$NIK4_VERSION failed" >&2
+   exit 1
+fi
+ln -sfn "`osgeolive_venv_bin nik4`" /usr/local/bin/nik4
 
 ## JOSM -- OpenStreetMap feature editor
 # see also  http://josm.openstreetmap.de/wiki/Download#Ubuntu

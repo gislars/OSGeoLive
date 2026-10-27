@@ -75,9 +75,10 @@ fi
 #  r-cran-splancs r-cran-rgeos r-cran-ncdf4 r-cran-rsaga r-cran-rgrass7
 
 apt-get --assume-yes --no-install-recommends install gfortran r-cran-classint r-cran-dplyr
-# apt-get --assume-yes install r-cran-sp r-cran-rpostgresql r-cran-udunits2 \
-  # r-cran-ggplot2 r-cran-sf r-cran-lwgeom r-cran-spdata r-cran-rgdal r-cran-maptools
-apt-get --assume-yes --no-install-recommends install r-cran-sf r-cran-ggplot2 r-cran-spdata
+# rgdal, rgeos and maptools were retired on CRAN; use sf and terra instead.
+# r-cran-rgrass is not in Ubuntu 26.04 yet.
+apt-get --assume-yes --no-install-recommends install \
+   r-cran-sf r-cran-terra r-cran-ggplot2 r-cran-spdata
 
 ##  -- jupyter hacks --
 ##

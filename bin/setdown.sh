@@ -160,7 +160,9 @@ chmod g-w /usr/lib/opencpn
 # chmod g-w /usr/lib/ossim/plugins
 chmod g-w /usr/share
 chmod g-w /usr/share/opencpn -R
-chmod g-w /usr/share/ossim/
+if [ -d /usr/share/ossim ] ; then
+   chmod g-w /usr/share/ossim/
+fi
 
 
 # now that everything is installed rebuild library search cache

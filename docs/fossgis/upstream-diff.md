@@ -368,6 +368,58 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   Pinning FOSSGIS-spezifisch
 - **Merge:** `build/gis-stack`, Nacharbeit `fix/gis-stack-verify`
 
+## Entfernt oder ersetzt (Ubuntu 26.04)
+
+### Willkommensdialog: gxmessage durch zenity
+
+- **Dateien:** `bin/install_desktop.sh`, `desktop-conf/welcome_message.sh`
+- **Was:** `gxmessage` fehlt in 26.04; Welcome-Dialog und Paket nutzen `zenity`.
+- **Einordnung:** upstream-tauglich
+- **Merge:** `build/resolute-app-ports`
+
+### Leaflet MarkerCluster von Upstream
+
+- **Dateien:** `bin/install_leaflet.sh`
+- **Was:** `libjs-leaflet-markercluster` fehlt; Installation von
+  Leaflet.markercluster v1.5.3 nach `/usr/share/javascript/leaflet-markercluster/`.
+- **Einordnung:** upstream-tauglich
+- **Merge:** `build/resolute-app-ports`
+
+### R: sf/terra statt rgdal/rgeos/maptools
+
+- **Dateien:** `bin/install_R.sh`
+- **Was:** CRAN hat `rgdal`, `rgeos`, `maptools` entfernt; zusätzlich `r-cran-terra`.
+  `r-cran-rgrass` fehlt in 26.04 noch.
+- **Einordnung:** upstream-tauglich
+- **Merge:** `build/resolute-app-ports`
+
+### Gemeinsame Python-venv und fehlende Debs
+
+- **Dateien:** `bin/tools/osgeolive_venv.sh`, `bin/base_python.sh`,
+  `bin/install_mapnik.sh`, `bin/install_osm.sh`, `bin/install_pygeoapi.sh`
+- **Was:** venv unter `/opt/osgeolive-venv` für `mappyfile`, `mapnik` (PyPI),
+  `nik4`, `pygeoapi`. System-`libmapnik4.2` bleibt; das Mapnik-Wheel kann eine
+  eigene libmapnik/GDAL mitbringen (Ausnahme vom einheitlichen GDAL-Stack).
+- **Einordnung:** FOSSGIS-spezifisch (Pfad); Ersatz upstream-tauglich
+- **Merge:** `build/resolute-app-ports`
+
+### OTB als offizielles Linux-Binary
+
+- **Dateien:** `bin/install_otb.sh`
+- **Was:** `libotb`/`monteverdi` fehlen; OTB 9.1.1 von
+  `orfeo-toolbox.org/packages/OTB-9.1.1-Linux.tar.gz` nach
+  `/usr/local/lib/OTB-9.1.1`.
+- **Einordnung:** upstream-tauglich
+- **Merge:** `build/resolute-app-ports`
+
+### OSSIM und PDAL vorerst ausgelassen
+
+- **Dateien:** `bin/install_ossim.sh`, `bin/install_PDAL.sh`
+- **Was:** Keine Ubuntu-Pakete und kein gepflegtes Live-Binary; Skripte
+  überspringen mit Hinweis. PDAL folgt, sobald ein pinbares Binary feststeht.
+- **Einordnung:** temporär
+- **Merge:** `build/resolute-app-ports`
+
 ## Hinweise
 
 - **Zeilenenden:** Einige Upstream-Dateien haben CRLF-Zeilenenden, zum Beispiel

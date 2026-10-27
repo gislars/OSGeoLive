@@ -99,7 +99,8 @@ chown "$USER_NAME:$USER_NAME" \
 
 
 ##### Setup timed welcome message
-apt-get --assume-yes install gxmessage
+# gxmessage is not in Ubuntu 26.04; welcome_message.sh uses zenity (setup.sh).
+apt-get --assume-yes install zenity
 
 mkdir -p /usr/local/share/osgeo-desktop
 

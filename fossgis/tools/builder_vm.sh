@@ -14,6 +14,7 @@
 #                                   or <ref> (branch or tag)
 #          builder_vm.sh follow     follow the log of a running build again
 #          builder_vm.sh fetch      copy ISO, log and new cache files back
+#          builder_vm.sh status     unit state, log path, whether log grows
 #          builder_vm.sh ssh        shell in the VM
 #          builder_vm.sh stop       shut the VM down
 #          builder_vm.sh destroy    stop the VM and delete build/vm/
@@ -314,11 +315,80 @@ cmd_build() {
    cmd_follow
 }
 
+# Prefer logs/latest.log; if the symlink is missing (setdown/race), take the
+# newest dated build log so follow/fetch/status still work.
+vm_build_log() {
+   vm_ssh "if [ -e $VM_BUILD/logs/latest.log ] ; then
+         readlink -f $VM_BUILD/logs/latest.log
+      else
+         ls -1t $VM_BUILD/logs/20*-*-*-osgeolive-*.log 2>/dev/null | head -n 1
+      fi"
+}
+
+cmd_status() {
+   vm_running || die "the VM is not running."
+   vm_ssh "STATE=\$(systemctl is-active fossgis-build 2>/dev/null || echo unknown)
+      SUB=\$(systemctl show -p SubState --value fossgis-build 2>/dev/null)
+      PID=\$(systemctl show -p MainPID --value fossgis-build 2>/dev/null)
+      STARTED=\$(systemctl show -p ExecMainStartTimestamp --value fossgis-build 2>/dev/null)
+      echo \"unit=\$STATE (\$SUB) pid=\${PID:-0} started=\${STARTED:-n/a}\"
+      if [ -n \"\$PID\" ] && [ \"\$PID\" != 0 ] && [ -d /proc/\$PID ] ; then
+         echo \"etime=\$(ps -o etime= -p \$PID | tr -d ' ')\"
+         echo \"cpu=\$(ps -o pcpu= -p \$PID | tr -d ' ')%\"
+         # Show the busiest child (mksquashfs, apt, nspawn, ...)
+         ps --ppid \$PID -o pid=,pcpu=,etime=,cmd= 2>/dev/null | sort -k2 -nr | head -n 3
+         pstree -ap \$PID 2>/dev/null | head -n 12
+      fi
+      if [ -e $VM_BUILD/logs/latest.log ] ; then
+         LOG=\$(readlink -f $VM_BUILD/logs/latest.log)
+      else
+         LOG=\$(ls -1t $VM_BUILD/logs/20*-*-*-osgeolive-*.log 2>/dev/null | head -n 1)
+         echo \"note: logs/latest.log missing, using newest dated log\"
+      fi
+      if [ -n \"\$LOG\" ] && [ -f \"\$LOG\" ] ; then
+         S1=\$(stat -c %s \"\$LOG\")
+         sleep 5
+         S2=\$(stat -c %s \"\$LOG\")
+         echo \"log=\$LOG\"
+         echo \"log_bytes=\$S2 (delta_5s=\$((S2 - S1)))\"
+         echo \"log_tail:\"
+         tail -n 5 \"\$LOG\"
+         if [ \"\$STATE\" = active ] && [ \"\$S1\" -eq \"\$S2\" ] ; then
+            # No log growth for 5s is normal during mksquashfs; only warn if
+            # there is also no busy child above 1% CPU.
+            BUSY=\$(ps --ppid \$PID -o pcpu= 2>/dev/null | awk '\$1+0 > 1 {n++} END {print n+0}')
+            if [ \"\${BUSY:-0}\" -eq 0 ] ; then
+               ROOTCPU=\$(ps -o pcpu= -p \$PID 2>/dev/null | tr -d ' ')
+               # Check descendants more broadly
+               DESC=\$(ps -eo ppid=,pcpu= | awk -v p=\$PID '\$1==p {s+=\$2} END {print s+0}')
+               if [ \"\$(echo \"\$ROOTCPU\" | awk '{print (\$1+0)<1}')\" = 1 ] && \
+                  [ \"\$(echo \"\$DESC\" | awk '{print (\$1+0)<1}')\" = 1 ] ; then
+                  echo \"warning: unit active but log idle and CPU near zero (possible hang)\"
+               fi
+            fi
+         fi
+      else
+         echo \"log=none\"
+         if [ \"\$STATE\" = active ] ; then
+            echo \"warning: unit active but no build log yet\"
+         fi
+      fi"
+}
+
 cmd_follow() {
    vm_running || die "the VM is not running."
-   # wait for the log of this build, then follow it until the unit ends
-   vm_ssh "for i in \$(seq 60) ; do [ -e $VM_BUILD/logs/latest.log ] && break ; sleep 2 ; done
-      LOG=\$(readlink -f $VM_BUILD/logs/latest.log)
+   # wait for a log (symlink or newest dated file), then follow until the unit ends
+   vm_ssh "LOG=\"\"
+      for i in \$(seq 90) ; do
+         if [ -e $VM_BUILD/logs/latest.log ] ; then
+            LOG=\$(readlink -f $VM_BUILD/logs/latest.log)
+         else
+            LOG=\$(ls -1t $VM_BUILD/logs/20*-*-*-osgeolive-*.log 2>/dev/null | head -n 1)
+         fi
+         [ -n \"\$LOG\" ] && [ -f \"\$LOG\" ] && break
+         sleep 2
+      done
+      [ -n \"\$LOG\" ] && [ -f \"\$LOG\" ] || { echo \"builder_vm: no build log in the VM\" >&2 ; exit 1 ; }
       PID=\$(systemctl show -p MainPID --value fossgis-build 2>/dev/null)
       if [ -n \"\$PID\" ] && [ \"\$PID\" != 0 ] ; then
          tail -n +1 -F --pid=\"\$PID\" \"\$LOG\" 2>/dev/null
@@ -326,7 +396,7 @@ cmd_follow() {
          cat \"\$LOG\"
       fi"
    if vm_ssh systemctl is-active --quiet fossgis-build ; then
-      echo "builder_vm: the build is still running (connection lost?), use follow again."
+      echo "builder_vm: the build is still running (connection lost?), use follow or status."
       return 0
    fi
    cmd_fetch
@@ -334,12 +404,15 @@ cmd_follow() {
 
 cmd_fetch() {
    vm_running || die "the VM is not running."
-   LOG=`vm_ssh "readlink -f $VM_BUILD/logs/latest.log"` || die "no build log in the VM."
+   LOG=`vm_build_log`
+   [ -n "$LOG" ] || die "no build log in the VM."
    LOG_NAME=`basename "$LOG"`
    mkdir -p "$BUILD_DIR/logs"
    vm_rsync -a builder@127.0.0.1:"$LOG" "$BUILD_DIR/logs/$LOG_NAME" || die "copy of the log failed."
    vm_ssh "grep -F '$LOG_NAME' $VM_BUILD/logs/index.tsv" >> "$BUILD_DIR/logs/index.tsv"
    ln -sfn "$LOG_NAME" "$BUILD_DIR/logs/latest.log"
+   # Repair the VM symlink if a race removed it during the build.
+   vm_ssh "sudo ln -sfn '$LOG_NAME' $VM_BUILD/logs/latest.log" || true
 
    ISO=`sed -n 's/^# iso=\([^ ]*\) .*/\1/p' "$BUILD_DIR/logs/$LOG_NAME" | tail -n 1`
    if [ -n "$ISO" ] && [ "$ISO" != "none" ] ; then
@@ -408,6 +481,7 @@ case "$COMMAND" in
    build) cmd_build "$@" ;;
    follow) cmd_follow ;;
    fetch) cmd_fetch ;;
+   status) cmd_status ;;
    ssh) vm_ssh "$@" ;;
    stop) cmd_stop ;;
    destroy) cmd_destroy ;;
