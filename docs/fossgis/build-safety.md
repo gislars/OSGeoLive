@@ -99,10 +99,10 @@ als grün gilt.
 | `remove_chroot`: aushängen, prüfen, `rm -rf --one-file-system` | auf `master`, im VM-Teilbuild genutzt |
 | belegtes `edit/dev`: lazy aushängen; Prozesse im Chroot brechen den Build ab | auf `master`, getestet: Teilbuild ohne `setdown.sh` -> `exit=1` vor dem Packen (Log 20261027-151552) |
 | Abbruch vor `mksquashfs`, wenn unter `edit/` etwas eingehängt ist | auf `master` |
-| Chroot-Teil in `systemd-nspawn` (eigenes `/dev`, eigene Mounts, alle Prozesse enden mit dem Container) | geschrieben (`fix/build-safety-hardening`); VM installiert `systemd-container` bei Bedarf |
-| `mksquashfs -one-file-system`, gescheitertes `umount` bricht ab | geschrieben (`fix/build-safety-hardening`), Log-Muster gegen alte Vorfall-Logs geprüft |
-| Log-Wächter: kritische Meldungen machen den Build rot, `record_full_build.sh` lehnt ab | geschrieben (`fix/build-safety-hardening`), Muster gegen Log 20261027-141554 geprüft |
-| `fossgis/tools/tests/test_build_safety.sh` mit einer Attrappe statt `/dev`: belegter Mount, `mksquashfs` über Mount-Grenzen, `rm --one-file-system`; statischer Teil in `check_clean` | geschrieben (`fix/build-safety-hardening`) |
+| Chroot-Teil in `systemd-nspawn` (eigenes `/dev`, eigene Mounts, alle Prozesse enden mit dem Container) | auf `master`; VM installiert `systemd-container` bei Bedarf; noch kein VM-Live-Build damit |
+| `mksquashfs -one-file-system`, gescheitertes `umount` bricht ab | auf `master`, Log-Muster gegen alte Vorfall-Logs geprüft |
+| Log-Wächter: kritische Meldungen machen den Build rot, `record_full_build.sh` lehnt ab | auf `master`, Muster gegen Log 20261027-141554 geprüft |
+| `fossgis/tools/tests/test_build_safety.sh` mit einer Attrappe statt `/dev`: belegter Mount, `mksquashfs` über Mount-Grenzen, `rm --one-file-system`; statischer Teil in `check_clean` | auf `master`, `--runtime` grün 27.10.2026 |
 
 Direkte Builds auf dem Host gibt es nicht mehr. Builds laufen nur über
 `fossgis/tools/builder_vm.sh`.
