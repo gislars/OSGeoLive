@@ -105,6 +105,20 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** upstream-tauglich
 - **Merge:** `chore/build-logs`
 
+### ISO in QEMU starten
+
+- **Dateien:** `fossgis/tools/run_iso.sh`
+- **Was:** startet das neueste `build/osgeolive-*.iso` (oder ein angegebenes) in
+  QEMU/KVM, standardmäßig per UEFI, mit `--bios` per BIOS. Die Zwischenablage wird
+  über SPICE mit dem Host geteilt: Auf dem Host braucht es `remote-viewer` (Paket
+  `virt-viewer`), im Gast läuft `spice-vdagent`. Das GTK-Fenster von Ubuntus QEMU
+  kann keine Zwischenablage; ohne `remote-viewer` startet das Skript trotzdem und
+  weist darauf hin.
+- **Warum:** ein kurzer Befehl für den QEMU-Test vor jedem Push, Fehlermeldungen
+  lassen sich aus der VM auf den Host kopieren.
+- **Einordnung:** nur FOSSGIS (Werkzeug)
+- **Merge:** `chore/run-iso`
+
 ### Vorgabe-Repository ist der Fork
 
 - **Dateien:** `bin/build_chroot.sh`, `bin/inchroot.sh`, `bin/bootstrap.sh`
