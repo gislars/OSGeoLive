@@ -37,25 +37,50 @@ cd "$TMP_DIR"
 
 apt-get -q update
 
-#Install packages
+# QGIS 4.2 from qgis.org/debian resolute (pinned in setup.sh)
 apt-get --assume-yes install qgis \
    qgis-common python3-qgis python3-qgis-common \
    gpsbabel qgis-plugin-grass
 
-
-if [ $? -ne 0 ] ; then
-   echo 'ERROR: Package install failed! Aborting.'
+# Only abort if QGIS itself is missing (other packages in the same apt
+# transaction can fail without leaving the disc without QGIS)
+if ! dpkg -s qgis > /dev/null 2>&1 ; then
+   echo 'ERROR: QGIS package install failed! Aborting.'
    exit 1
 fi
 
-# Install plugins
-wget -c --progress=dot:mega \
-   "http://download.osgeo.org/livedvd/data/qgis/qgis3-osgeolive15-plugins.zip"
-unzip -q qgis3-osgeolive15-plugins.zip -d /
-rm -rf qgis3-osgeolive15-plugins.zip
+# Plugins for QGIS 4 (Qt6): prefer the FOSSGIS local zip (not in git), then
+# app-data. Built with fossgis/tools/build_qgis_plugins_zip.py.
+PLUGINS_ZIP=""
+for CANDIDATE in \
+      "${FOSSGIS_DIR:-/usr/local/share/gisvm/fossgis-local}/data/qgis/qgis4-osgeolive-plugins.zip" \
+      "$BUILD_DIR/../app-data/qgis/qgis4-osgeolive-plugins.zip" ; do
+   if [ -f "$CANDIDATE" ] ; then
+      PLUGINS_ZIP="$CANDIDATE"
+      break
+   fi
+done
+if [ -n "$PLUGINS_ZIP" ] ; then
+   echo "Installing QGIS plugins from: $PLUGINS_ZIP"
+   if ! unzip -oq "$PLUGINS_ZIP" -d / ; then
+      echo "WARNING: Unpacking QGIS plugins zip failed. QGIS will run without these plugins."
+   fi
+else
+   echo "WARNING: no QGIS plugins zip found (local/data/qgis/ or app-data/qgis/)."
+fi
 
 #### install desktop icon ####
 INSTALLED_VERSION=`dpkg -s qgis | grep '^Version:' | awk '{print $2}' | cut -f1 -d~`
+QGIS_ICON=/usr/share/icons/qgis-icon.xpm
+for CANDIDATE in \
+      /usr/share/icons/qgis-icon.xpm \
+      /usr/share/qgis/images/icons/qgis-icon-60x60.png \
+      /usr/share/icons/hicolor/128x128/apps/qgis.png ; do
+   if [ -e "$CANDIDATE" ] ; then
+      QGIS_ICON="$CANDIDATE"
+      break
+   fi
+done
 if [ ! -e /usr/share/applications/org.qgis.qgis.desktop ] ; then
    cat << EOF > /usr/share/applications/org.qgis.qgis.desktop
 [Desktop Entry]
@@ -65,7 +90,7 @@ Name=QGIS
 Comment=QGIS $INSTALLED_VERSION
 Categories=Application;Education;Geography;
 Exec=/usr/bin/qgis %F
-Icon=/usr/share/icons/qgis-icon.xpm
+Icon=$QGIS_ICON
 Terminal=false
 StartupNotify=false
 Categories=Education;Geography;Qt;
@@ -74,9 +99,7 @@ EOF
 fi
 
 cp /usr/share/applications/org.qgis.qgis.desktop "$USER_HOME/Desktop/qgis.desktop"
-# cp /usr/share/applications/qbrowser.desktop "$USER_HOME/Desktop/"
 chown -R $USER_NAME:$USER_NAME "$USER_HOME/Desktop/qgis.desktop"
-# chown -R $USER_NAME.$USER_NAME "$USER_HOME/Desktop/qbrowser.desktop"
 
 
 # add menu item
@@ -86,7 +109,7 @@ if [ ! -e /usr/share/menu/qgis ] ; then
   section="Applications/Science/Geoscience"\
   title="QGIS"\
   command="/usr/bin/qgis"\
-  icon="/usr/share/icons/qgis-icon.xpm"
+  icon="$QGIS_ICON"
 EOF
   update-menus
 fi

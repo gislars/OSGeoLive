@@ -169,6 +169,7 @@ else
 ./install_grass.sh
 ./install_qgis.sh
 ./install_qgis_server.sh
+./check_gis_stack.sh
 # ./install_qfield.sh # install_vm_only
 # ./install_zoo-project.sh "$ARCH" # install_vm_only
 ./install_marble.sh
