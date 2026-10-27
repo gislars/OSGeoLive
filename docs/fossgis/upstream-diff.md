@@ -275,13 +275,15 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   auf Autor und Committer, auf die Merge-Regeln für `master` und auf den Nachweis des
   letzten Vollbuilds (`build/last-full-build.txt`, geschrieben von
   `record_full_build.sh`). Bei den Archiv-Branches werden Syntax, Autor, Betreff und
-  Leerzeichen nur gemeldet. `pre-push.hook` ist die Vorlage für `.git/hooks/pre-push`:
+  Leerzeichen nur gemeldet. Mehrzeilige `Tested:`-Angaben im Merge-Body (ohne
+  eingerückte Fortsetzungszeilen) zählen weiterhin; reine Git-Trailer-Erkennung
+  würde sie sonst übersehen. `pre-push.hook` ist die Vorlage für `.git/hooks/pre-push`:
   Push nur zu `gislars`, nur mit `FOSSGIS_PUSH_APPROVED=1` und nur mit grünem
   `check_clean.sh`.
 - **Warum:** Ins Fork-Repo kommen nur saubere, getestete Commits, und kein Push geht
   ohne ausdrückliche Freigabe raus.
 - **Einordnung:** FOSSGIS-spezifisch
-- **Merge:** `chore/clean-check`
+- **Merge:** `chore/clean-check`, Nacharbeit `fix/check-clean-tested-body`
 
 ### Dieses Dokument
 

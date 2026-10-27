@@ -276,7 +276,11 @@ if [ "$MASTER" -eq 1 ] ; then
                 fail "$short: direct commit on master after $BASE_TAG, use a topic branch and merge --no-ff"
                 continue
             fi
-            if [ -z "$(git log -1 --format='%(trailers:key=Tested,valueonly)' "$c")" ] ; then
+            # Prefer git trailers; also accept a body line "Tested:" (older
+            # merges wrap the value across lines, which git does not parse
+            # as a trailer unless continuations are indented).
+            if [ -z "$(git log -1 --format='%(trailers:key=Tested,valueonly)' "$c")" ] && \
+               ! git log -1 --format='%B' "$c" | grep -q '^Tested:' ; then
                 fail "$short: merge without 'Tested:' trailer"
             fi
             changed=$(git diff --name-only "$c^1" "$c")
