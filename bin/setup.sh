@@ -49,9 +49,11 @@ EOF
 fi
 
 # disable automatic updates
-sed -i -e 's|\(APT::Periodic::Update-Package-Lists\) "1";|\1 "0";|' \
-   -e 's|\(APT::Periodic::Unattended-Upgrade\) "1";|\1 "0";|' \
-   /etc/apt/apt.conf.d/20auto-upgrades
+if [ -f /etc/apt/apt.conf.d/20auto-upgrades ] ; then
+   sed -i -e 's|\(APT::Periodic::Update-Package-Lists\) "1";|\1 "0";|' \
+      -e 's|\(APT::Periodic::Unattended-Upgrade\) "1";|\1 "0";|' \
+      /etc/apt/apt.conf.d/20auto-upgrades
+fi
 
 # Pin down kernel version
 echo "linux-image-generic hold" | dpkg --set-selections
@@ -59,8 +61,7 @@ echo "linux-image-generic hold" | dpkg --set-selections
 
 # Install latest greatest security packages etc.
 apt-get -q update
-#FIXME: Enable updates after beta
-# apt-get --yes upgrade
+apt-get --yes upgrade
 
 # Remove snapd applications and service
 # snap remove --purge firefox
@@ -70,50 +71,36 @@ apt-get -q update
 # snap remove --purge core20
 # snap remove --purge snapd
 apt-get remove --yes snapd
-umount /snap/firefox/4173
-umount /snap/gnome-42-2204/176
-umount /snap/gtk-common-themes/1535
-umount /snap/bare/5
-umount /snap/core22/1380
-umount /snap/snapd/21465
-umount /snap/firmware-updater/127
+# Snaps mounted inside the chroot, if any (not the ones of the build host)
+for SNAP_MOUNT in `awk '$2 ~ "^/snap/" {print $2}' /proc/self/mounts` ; do
+   umount "$SNAP_MOUNT"
+done
 #rm -rf /var/lib/snapd/snaps/*.snap
 rm -rf /var/lib/snapd
 rm -rf /var/cache/snapd
 rm -rf /etc/systemd/system/snap-*.mount
-rm /etc/udev/rules.d/70-snap*.rules
+rm -f /etc/udev/rules.d/70-snap*.rules
 
 # This will prevent snapd from any repository
 cp ../app-conf/apt/nosnap.pref /etc/apt/preferences.d/
 cp ../app-conf/apt/firefox-nosnap.pref /etc/apt/preferences.d/
 
-# Add OSGeoLive repository
-if [ "$BUILD_MODE" = "release" ] ; then
-   cp ../sources.list.d/osgeolive.list /etc/apt/sources.list.d/
-   # cp ../sources.list.d/osgeolive-nightly.list /etc/apt/sources.list.d/
-else
-   cp ../sources.list.d/osgeolive-nightly.list /etc/apt/sources.list.d/
-fi
+# There is no OSGeoLive PPA for Ubuntu 26.04 (resolute), all packages come
+# from Ubuntu or from the upstream repositories of the projects
 
-# Add Mozilla repository
-cp ../sources.list.d/mozilla.list /etc/apt/sources.list.d/
-
-# Add keys for repositories
-apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys FADA29F7
-apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys F8B854D3
-# Staging repo
-#apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 60FD897119D0262C
-# UbuntuGIS
-#apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 314DF160
-# Mozilla ppa
-apt-key adv --keyserver keyserver.ubuntu.com --recv-keys CE49EC21
+# Add Mozilla repository (Firefox as deb instead of snap); apt-key is gone,
+# the key is shipped in app-conf/apt/keyrings
+mkdir -p /etc/apt/keyrings
+cp ../app-conf/apt/keyrings/packages.mozilla.org.asc /etc/apt/keyrings/
+chmod a+r /etc/apt/keyrings/packages.mozilla.org.asc
+cp ../sources.list.d/mozilla.sources /etc/apt/sources.list.d/
 
 apt-get -q update
 
 
 # Install some useful stuff
-apt-get install --yes wget less zip unzip bzip2 p7zip \
-  git openssh-client lftp usbutils wireless-tools \
+apt-get install --yes wget less zip unzip bzip2 7zip \
+  git openssh-client lftp usbutils iw \
   locate patch menu vim nano screen iotop xfonts-jmk \
   ghostscript htop units gdebi xkb-data \
   xfonts-100dpi xfonts-75dpi zenity curl firefox
@@ -154,7 +141,7 @@ apt-get install --yes wget less zip unzip bzip2 p7zip \
 
 # Uninstall large applications installed by default
 apt-get remove --yes \
-   libsane1 libsane-common libsane-hpaio libieee1284-3
+   libsane1 libsane-common libsane-hpaio libieee1284-3t64
 
 # regen initrd
 depmod

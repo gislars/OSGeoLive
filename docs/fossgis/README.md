@@ -3,30 +3,6 @@
 Dieses Repository ist der FOSSGIS-Fork von OSGeoLive. Was sich gegenüber OSGeo
 unterscheidet, steht in [upstream-diff.md](upstream-diff.md).
 
-Vor jedem Build und jeder Änderung an Build-Skripten:
-[build-safety.md](build-safety.md). Der Build läuft als root auf dem Arbeitsrechner;
-dort stehen zwei Vorfälle und die Regeln, die daraus folgen. Regeln für
-KI-Assistenten: [`AGENTS.md`](../../AGENTS.md).
-
-## Build starten (nur in der Build-VM)
-
-Gebaut wird ausschließlich in einer QEMU/KVM-VM, als normaler Benutzer, ohne `sudo`
-auf dem Host. Gebaut wird der committete Stand (`HEAD`) des Checkouts, aus dem das
-Skript aufgerufen wird.
-
-```sh
-fossgis/tools/builder_vm.sh create   # einmalig: Ubuntu-Cloud-Image, VM-Platte (bis 80G)
-fossgis/tools/builder_vm.sh start
-fossgis/tools/builder_vm.sh build    # wie build_chroot.sh amd64 nightly
-fossgis/tools/builder_vm.sh build --ref build/resolute-base   # anderer Branch
-fossgis/tools/builder_vm.sh stop
-```
-
-`build` folgt dem Log; bricht die Verbindung ab, holt `follow` es wieder.
-Am Ende kopiert `fetch` ISO und Log nach `build/` und `build/logs/` und prüft mit
-`host_guard.sh`, dass der Host unverändert ist. Grenzen über `FOSSGIS_VM_CPUS`,
-`FOSSGIS_VM_RAM`, `FOSSGIS_VM_DISK`. `destroy` löscht die VM vollständig.
-
 > Gerüst, wird mit dem Branch `docs/fossgis-build` vervollständigt.
 
 ## Verzeichnisse
@@ -84,8 +60,7 @@ Der Build hält Downloads zwischen den Läufen in `local/cache/` vor (abschaltba
 - Neu laden: `FOSSGIS_CACHE_REFRESH="1"` in `local/local.env` für einen Lauf, oder
   einzelne Dateien unter `local/cache/downloads/` löschen.
 - Nicht gecacht werden `git clone`, `pip` und `apt-get update` (Paketlisten).
-- In der Build-VM liegt der Cache auf der VM-Platte; `builder_vm.sh build` kopiert
-  `local/cache/` hinein, `fetch` nur neue Dateien zurück.
+- Der Cache gehört nach dem Build wieder dem Benutzer, der `sudo` aufgerufen hat.
 
 ## Teilbuild
 
@@ -102,6 +77,4 @@ install_desktop.sh
 setdown.sh
 ```
 
-Für einen Vollbuild wird die Datei wieder entfernt oder umbenannt. Startet ein
-Skript der Liste einen Dienst (zum Beispiel `service_postgresql.sh`), muss die Liste
-mit `setdown.sh` enden, das die Dienste wieder stoppt.
+Für einen Vollbuild wird die Datei wieder entfernt oder umbenannt.

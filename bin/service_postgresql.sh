@@ -27,7 +27,7 @@ if [ -z "$USER_NAME" ] ; then
 fi
 USER_HOME="/home/$USER_NAME"
 
-PG_VERSION="16"
+PG_VERSION="18"
 
 #debug:
 echo "#DEBUG The locale settings are currently:"

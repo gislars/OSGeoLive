@@ -37,7 +37,13 @@ if [ -z "$USER_NAME" ] ; then
 fi
 
 # Try to create the tomcat group and user with specific UID
-groupadd -g 998 tomcat
+# (GID 998 belongs to systemd-network since Ubuntu 26.04)
+TOMCAT_GID=998
+if getent group "$TOMCAT_GID" > /dev/null ; then
+   groupadd --system tomcat
+else
+   groupadd -g "$TOMCAT_GID" tomcat
+fi
 # useradd tomcat -u 998 -g 998 --gecos "Apache Tomcat" -m -d /var/lib/tomcat -s /usr/sbin/nologin
 
 apt-get install --yes tomcat10 tomcat10-admin
