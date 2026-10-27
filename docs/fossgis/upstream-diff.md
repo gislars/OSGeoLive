@@ -420,6 +420,25 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** temporär
 - **Merge:** `build/resolute-app-ports`
 
+## Workshop-Werkzeuge
+
+### Docker, Node.js (NVM) und VS Code
+
+- **Dateien:** `bin/install_docker.sh`, `bin/install_node.sh`, `bin/install_vscode.sh`,
+  `bin/setup.sh`, `bin/setdown.sh`, `bin/inchroot.sh`, `sources.list.d/docker.list`,
+  `sources.list.d/vscode.list`
+- **Was:** Docker CE aus dem offiziellen Repo (`resolute`), Node.js aktuelle LTS
+  (Major 24) per NVM, VS Code aus dem Microsoft-Repo. Die Quellen werden in
+  `setup.sh` unabhaengig vom Build-Modus eingebunden. `apt-get` nutzt `--yes`.
+  VS Code startet im Live-System mit `--no-sandbox` (Desktop-Eintrag). Die
+  `docker`-Gruppe wird in `setdown.sh` per oneshot-Service nachgezogen, weil
+  Casper die Gruppenmitgliedschaft sonst verlieren kann. Nach der NVM-Installation
+  werden `.nvm/.git` und `.nvm/test` entfernt; sonst scheitert
+  `deluser --remove-home` an Testpfaden mit Anführungszeichen und Nicht-ASCII.
+- **Warum:** Workshops brauchen Container, aktuelle Node-Toolchain und einen Editor.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `feature/extra-software`
+
 ## Hinweise
 
 - **Zeilenenden:** Einige Upstream-Dateien haben CRLF-Zeilenenden, zum Beispiel

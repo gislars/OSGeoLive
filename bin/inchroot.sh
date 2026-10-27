@@ -211,6 +211,11 @@ else
 # ./install_gvsig.sh "$ARCH" # install_vm_only
 ./install_gpsprune.sh
 
+## Node.js, Docker, VS Code (FOSSGIS workshop tools)
+./install_node.sh
+./install_docker.sh
+./install_vscode.sh
+
 ## Java + default tomcat
 # ./install_52nSOS.sh # install_vm_only
 
