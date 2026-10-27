@@ -1,0 +1,15 @@
+# Allowed hits of the keyword search in check_clean.sh.
+#   line:<ERE>  added lines matching the expression are not reported
+#   path:<ERE>  keyword hits in matching paths are not reported
+# Values from local.env and local *.nmconnection files are always reported.
+
+# The search patterns themselves
+path:^fossgis/tools/check_clean\.(sh|allow)$
+# Public live session login user/user, documented in passwords.txt
+line:password:[[:space:]]*user[[:space:]]*$
+# pgAdmin desktop mode without master password
+line:MASTER_PASSWORD_REQUIRED[[:space:]]*=[[:space:]]*False
+# QGIS connection template filled with the public demo password variable
+line:password=\$PSWD$
+# Browser log of the OpenLayers examples, public example token (fossgis2026)
+path:^ol_issues\.txt$
