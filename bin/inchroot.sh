@@ -286,8 +286,24 @@ awk -F: '$3 > 999' /etc/passwd
 
 #### Cleanup ####
 
+# FOSSGIS: a partial build skips setdown.sh, detach the local caches here so
+# that apt-get clean does not empty them (see bin/build_chroot.sh)
+for CACHE_MOUNT in /var/cache/apt/archives /var/cache/fossgis-downloads ; do
+   if mountpoint -q "$CACHE_MOUNT" ; then
+      umount "$CACHE_MOUNT" || umount -l "$CACHE_MOUNT"
+   fi
+done
+rmdir /var/cache/fossgis-downloads 2>/dev/null
+if grep -q "FOSSGIS wget cache wrapper" /usr/local/bin/wget 2>/dev/null ; then
+   rm -f /usr/local/bin/wget
+fi
+
 # Be sure to remove any temporary files which are no longer needed, as space on a CD is limited
-apt-get clean
+if mountpoint -q /var/cache/apt/archives ; then
+   echo "ERROR: apt cache still mounted, skipping apt-get clean" >&2
+else
+   apt-get clean
+fi
 
 # Delete temporary files
 rm -rf /tmp/* ~/.bash_history

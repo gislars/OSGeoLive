@@ -38,6 +38,30 @@ cp fossgis/local.env.example local/local.env
 chmod 600 local/local.env
 ```
 
+## Download-Cache
+
+Der Build hält Downloads zwischen den Läufen in `local/cache/` vor (abschaltbar mit
+`FOSSGIS_CACHE="0"` in `local/local.env`, anderes Verzeichnis mit
+`FOSSGIS_CACHE_DIR`):
+
+| Was | Verzeichnis | Wie |
+|---|---|---|
+| Lubuntu-Image | `build/` | bleibt liegen, `wget -c` und Prüfsumme bei jedem Lauf |
+| apt-Pakete | `local/cache/apt/` | Bind-Mount als `/var/cache/apt/archives` im Chroot |
+| `wget` der Install-Skripte | `local/cache/downloads/<host>/<pfad>` | Wrapper `fossgis/tools/wget_cache.sh` als `/usr/local/bin/wget` im Chroot |
+
+- `setdown.sh` hängt den Cache vor `apt-get clean` aus und entfernt den Wrapper;
+  `build_chroot.sh` prüft das nach dem Chroot-Teil noch einmal und bricht ab, wenn
+  der Cache noch eingehängt ist. Er landet also nie im ISO.
+- Der Wrapper bedient nur Aufrufe mit genau einer URL ohne Query-String und mit den
+  in den Skripten üblichen Optionen (`-c`, `-N`, `-O`, `-P`, `-x`, `--tries`,
+  `--progress`). Alles andere geht unverändert an das echte `wget`, zum Beispiel
+  `-O-` für Ausgaben auf stdout. Fehlgeschlagene Downloads werden nicht gespeichert.
+- Neu laden: `FOSSGIS_CACHE_REFRESH="1"` in `local/local.env` für einen Lauf, oder
+  einzelne Dateien unter `local/cache/downloads/` löschen.
+- Nicht gecacht werden `git clone`, `pip` und `apt-get update` (Paketlisten).
+- Der Cache gehört nach dem Build wieder dem Benutzer, der `sudo` aufgerufen hat.
+
 ## Teilbuild
 
 Liegt `local/inchroot.list` vor, führt `inchroot.sh` nur die dort genannten Skripte

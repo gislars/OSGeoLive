@@ -191,6 +191,18 @@ echo
 cd "$BUILD_DIR"
 ./tools/post_build_checks.sh
 
+# FOSSGIS: detach the local download cache before the apt cache is copied
+# and cleaned, and remove the wget wrapper (see bin/build_chroot.sh)
+for CACHE_MOUNT in /var/cache/apt/archives /var/cache/fossgis-downloads ; do
+   if mountpoint -q "$CACHE_MOUNT" ; then
+      umount "$CACHE_MOUNT" || umount -l "$CACHE_MOUNT"
+   fi
+done
+rmdir /var/cache/fossgis-downloads 2>/dev/null
+if grep -q "FOSSGIS wget cache wrapper" /usr/local/bin/wget 2>/dev/null ; then
+   rm -f /usr/local/bin/wget
+fi
+
 #### Copy tmp files, apt cache and logs ready for backup
 mkdir "/tmp/$VERSION"
 cd "/tmp/$VERSION"
