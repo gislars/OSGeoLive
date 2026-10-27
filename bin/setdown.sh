@@ -301,7 +301,7 @@ service apache2 stop
 
 # FOSSGIS: local inputs of the build (local.env with secrets, data) must
 # not stay in the image
-rm -rf /tmp/fossgis
+rm -rf /tmp/fossgis /usr/local/share/gisvm/fossgis-local
 
 # Deleting users created by tomcat installer in chroot.
 # Hopefully they will be created on boot time by /usr/lib/sysusers.d/tomcat9.conf

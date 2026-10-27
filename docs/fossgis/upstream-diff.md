@@ -137,9 +137,10 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Was:** Alles, was sich jährlich ändert, steht in `fossgis/edition.conf`;
   Secrets stehen in der nicht versionierten `local/local.env`. `build_chroot.sh`
   kopiert `edition.conf` und aus `local/` die Einträge `local.env`, `inchroot.list`,
-  `artwork/` und `data/` nach `/tmp/fossgis` im Chroot. `inchroot.sh` lädt die Werte
+  `artwork/` und `data/` nach `/usr/local/share/gisvm/fossgis-local` im Container
+  (nicht nach `/tmp`, dort hängt nspawn ein tmpfs ein). `inchroot.sh` lädt die Werte
   über `load_edition.sh` und exportiert sie. `setdown.sh` und `inchroot.sh` löschen
-  `/tmp/fossgis` am Ende. Mit `local/inchroot.list` laufen nur die dort genannten
+  `fossgis-local` am Ende. Mit `local/inchroot.list` laufen nur die dort genannten
   Skripte (Teilbuild).
 - **Warum:** Jahreswerte zentral statt fest in den Skripten; Secrets und große Daten
   bleiben außerhalb des Repos; Teilbuilds für die Portierung, ohne `inchroot.sh`
@@ -175,7 +176,9 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   eingehängt ist, wird vorher ausgehängt (lazy), bleibt trotzdem etwas übrig, bricht
   der Build ab; `rm` läuft mit `--one-file-system`. Bleibt nach dem Container etwas
   unter `edit/` eingehängt oder laufen noch Prozesse mit Root im Baum, bricht der
-  Build vor dem Packen ab. `mksquashfs` läuft mit `-one-file-system`. Die apt-Quelle
+  Build vor   dem Packen ab. `mksquashfs` läuft mit `-one-file-system`. Einstiegsskripte und
+  FOSSGIS-Inputs liegen unter `/usr/local/share/gisvm/` (nicht unter `/tmp`), weil
+  nspawn dort ein tmpfs aus der Live-`fstab` einhängt. Die apt-Quelle
   `cdrom.sources` des Live-Systems wird während des Builds beiseitegelegt und danach
   zurückgestellt. `depmod` läuft für die Kernel des Images. `test_build_safety.sh`
   prüft das statisch (und optional mit sudo zur Laufzeit); `check_clean.sh` ruft den

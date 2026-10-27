@@ -397,16 +397,14 @@ echo
 echo "Starting build in systemd-nspawn"
 echo "======================================"
 
-#NOW IN THE CONTAINER
-sudo cp "$DIR"/inchroot.sh "$BUILD_DIR"/edit/tmp/
-sudo cp "$DIR"/bootstrap.sh "$BUILD_DIR"/edit/tmp/
-sudo cp "$GIT_DIR"/VERSION.txt "$BUILD_DIR"/edit/tmp/
-sudo cp "$GIT_DIR"/CHANGES.txt "$BUILD_DIR"/edit/tmp/
-
-# Use the local working tree inside the chroot instead of cloning from
+# Use the local working tree inside the container instead of cloning from
 # GitHub; bootstrap.sh then skips the clone. Only tracked files and
 # untracked files not covered by .gitignore are copied, so local data,
 # secrets and the build directory never end up in the image.
+#
+# Do not put entry scripts under edit/tmp/: the live image's fstab mounts a
+# tmpfs on /tmp inside systemd-nspawn and would hide them. Everything for
+# the build lives under /usr/local/share/gisvm/.
 GISVM_COPY="$BUILD_DIR"/edit/usr/local/share/gisvm
 sudo mkdir -p "$GISVM_COPY"
 git -C "$GIT_DIR" ls-files -z --cached --others --exclude-standard | \
@@ -431,13 +429,12 @@ if [ -n "$LEAKED" ] ; then
 fi
 
 # FOSSGIS edition settings and the local-only inputs (local.env, optional
-# inchroot.list, artwork, prepared data) go to /tmp/fossgis in the chroot;
-# setdown.sh deletes them again. local/ belongs to the main checkout, also
-# when building from a linked worktree.
+# inchroot.list, artwork, prepared data). setdown.sh deletes them again.
+# local/ belongs to the main checkout, also when building from a worktree.
 if [ -z "$FOSSGIS_LOCAL_DIR" ] ; then
    FOSSGIS_LOCAL_DIR="$(dirname "$(git -C "$GIT_DIR" rev-parse --path-format=absolute --git-common-dir)")/local"
 fi
-FOSSGIS_TMP="$BUILD_DIR"/edit/tmp/fossgis
+FOSSGIS_TMP="$GISVM_COPY/fossgis-local"
 sudo mkdir -p "$FOSSGIS_TMP"
 sudo cp "$GIT_DIR"/fossgis/edition.conf "$FOSSGIS_TMP"/
 for ITEM in local.env inchroot.list artwork data ; do
@@ -493,7 +490,8 @@ if ! sudo systemd-nspawn \
       --network-namespace-path=/proc/1/ns/net \
       --setenv=FOSSGIS_NSPAWN=1 \
       $NSPAWN_BINDS \
-      /bin/sh /tmp/inchroot.sh "$ARCH" "$BUILD_MODE" "$GIT_BRANCH" "$GIT_USER"
+      /bin/sh /usr/local/share/gisvm/bin/inchroot.sh \
+         "$ARCH" "$BUILD_MODE" "$GIT_BRANCH" "$GIT_USER"
 then
    echo "ERROR: systemd-nspawn / inchroot.sh failed." >&2
    exit 1
