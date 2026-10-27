@@ -64,9 +64,13 @@ run_installer()
   sh "$SCRIPT"
 }
 
-mount -t proc none /proc
-mount -t sysfs none /sys
-mount -t devpts none /dev/pts
+# systemd-nspawn already mounts /proc, /sys and a private /dev; a plain
+# chroot (legacy) still needs them. FOSSGIS_NSPAWN=1 is set by build_chroot.sh.
+if [ "${FOSSGIS_NSPAWN:-}" != "1" ] ; then
+   mount -t proc none /proc
+   mount -t sysfs none /sys
+   mount -t devpts none /dev/pts
+fi
 
 # To avoid locale issues and in order to import GPG keys
 export HOME=/roots
@@ -320,7 +324,9 @@ rm -f /var/lib/dbus/machine-id
 rm /sbin/initctl
 dpkg-divert --rename --remove /sbin/initctl
 
-# Now umount (unmount) special filesystems and exit chroot 
-umount /proc || umount -lf /proc
-umount /sys
-umount /dev/pts
+# Now umount (unmount) special filesystems and exit chroot
+if [ "${FOSSGIS_NSPAWN:-}" != "1" ] ; then
+   umount /proc || umount -lf /proc
+   umount /sys
+   umount /dev/pts
+fi

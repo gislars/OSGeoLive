@@ -303,5 +303,13 @@ fi
 MODE="topic"
 [ "$MASTER" -eq 1 ] && MODE="master"
 [ "$ARCHIVE" -eq 1 ] && MODE="archive"
+# 6. static build-safety checks whenever this range touches the build script
+if [ -n "${CHANGED[bin/build_chroot.sh]+x}" ] ; then
+    if ! "$TOOLS_DIR/tests/test_build_safety.sh" --static > "$TMP_DIR/safety.out" 2>&1 ; then
+        fail "test_build_safety.sh --static failed:"
+        sed -n 's/^/      /; 1,40p' "$TMP_DIR/safety.out"
+    fi
+fi
+
 echo "check_clean: $LABEL ($MODE): $COUNT commits, $FAILS failures, $WARNS warnings"
 [ "$FAILS" -eq 0 ]

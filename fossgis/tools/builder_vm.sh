@@ -141,7 +141,7 @@ users:
       - `cat "$VM_DIR/id_ed25519.pub"`
 ssh_pwauth: false
 package_update: true
-packages: [git, rsync, nftables]
+packages: [git, rsync, nftables, systemd-container]
 write_files:
   - path: /etc/nftables.conf
     permissions: "0644"
@@ -240,6 +240,11 @@ cmd_build() {
    fi
 
    vm_ssh "set -e
+      if ! command -v systemd-nspawn > /dev/null ; then
+         sudo apt-get update -qq
+         sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq systemd-container
+      fi
+      command -v systemd-nspawn > /dev/null
       sudo rm -rf --one-file-system $VM_BASE/src
       sudo git init -q $VM_BASE/src
       sudo git -C $VM_BASE/src fetch -q $VM_BASE/src.bundle '+refs/tags/*:refs/tags/*' '$REF'
@@ -309,6 +314,9 @@ cmd_fetch() {
    echo "exit=${BUILD_EXIT:-unknown}"
    "$GUARD" check "$VM_DIR/host-guard.snapshot" || exit 1
    [ "$BUILD_EXIT" = 0 ] || die "the build failed (exit=${BUILD_EXIT:-unknown}), see the log."
+   # belt and braces: a log that slipped through with exit=0 but host-risk text
+   "$TOOLS_DIR/check_build_log.sh" "$BUILD_DIR/logs/$LOG_NAME" || \
+      die "the build log has critical messages, see above."
 }
 
 cmd_stop() {

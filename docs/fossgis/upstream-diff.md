@@ -166,23 +166,27 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 
 ### Chroot nie mit eingehängtem /dev löschen
 
-- **Dateien:** `bin/build_chroot.sh`, `bin/setup.sh`
-- **Was:** `edit/` wird nur noch über `remove_chroot` gelöscht: Alles, was darunter
+- **Dateien:** `bin/build_chroot.sh`, `bin/inchroot.sh`, `bin/setup.sh`,
+  `fossgis/tools/tests/test_build_safety.sh`
+- **Was:** Der Inchroot-Teil läuft in `systemd-nspawn` mit privatem `/dev` und
+  Host-Netzwerk; Cache-Verzeichnisse kommen als `--bind` nur für die Laufzeit des
+  Containers. Beim Ende des Containers enden auch übrig gebliebene Prozesse.
+  `edit/` wird nur noch über `remove_chroot` gelöscht: Alles, was darunter
   eingehängt ist, wird vorher ausgehängt (lazy), bleibt trotzdem etwas übrig, bricht
-  der Build ab; `rm` läuft mit `--one-file-system`. Ist `edit/dev` nach dem Chroot
-  belegt, hängt der Build es lazy aus. Laufen danach noch Prozesse mit Root im
-  Chroot (Teilbuild ohne `setdown.sh`), bricht der Build vor dem Packen ab. Vor
-  `mksquashfs` darf unter `edit/` nichts mehr eingehängt sein. Die apt-Quelle
-  `cdrom.sources` des Live-Systems wird während des Chroots beiseitegelegt und danach
-  zurückgestellt. `depmod` läuft für die Kernel des Images statt für den Kernel des
-  Build-Rechners.
-- **Warum:** Im ersten 26.04-Teilbuild war `edit/dev` beim Aushängen belegt. Das
-  folgende `rm -rf edit` leerte das `/dev` des Build-Rechners (Neustart nötig), und
-  `mksquashfs` packte das `/dev` des Hosts ins Image. Ohne Abbruch bei laufenden
-  Prozessen änderte PostgreSQL Dateien während des Packens. `cdrom.sources` zeigt auf
-  `/cdrom`, das es im Chroot nicht gibt; jedes `apt-get update` meldete einen Fehler.
-- **Einordnung:** upstream-tauglich (das Risiko steht schon als Kommentar im Skript)
-- **Merge:** `build/resolute-base`
+  der Build ab; `rm` läuft mit `--one-file-system`. Bleibt nach dem Container etwas
+  unter `edit/` eingehängt oder laufen noch Prozesse mit Root im Baum, bricht der
+  Build vor dem Packen ab. `mksquashfs` läuft mit `-one-file-system`. Die apt-Quelle
+  `cdrom.sources` des Live-Systems wird während des Builds beiseitegelegt und danach
+  zurückgestellt. `depmod` läuft für die Kernel des Images. `test_build_safety.sh`
+  prüft das statisch (und optional mit sudo zur Laufzeit); `check_clean.sh` ruft den
+  statischen Teil auf, wenn `bin/build_chroot.sh` geändert wurde.
+- **Warum:** Im ersten 26.04-Teilbuild war `edit/dev` (Bindung des Host-`/dev`) beim
+  Aushängen belegt. Das folgende `rm -rf edit` leerte das `/dev` des Build-Rechners
+  (Neustart nötig), und `mksquashfs` packte das `/dev` des Hosts ins Image. Ohne
+  Abbruch bei laufenden Prozessen änderte PostgreSQL Dateien während des Packens.
+  `cdrom.sources` zeigt auf `/cdrom`, das es im Container nicht gibt.
+- **Einordnung:** upstream-tauglich (das Risiko stand schon als Kommentar im Skript)
+- **Merge:** `build/resolute-base`, ergänzt in `fix/build-safety-hardening`
 
 ## Basis Lubuntu 26.04
 
@@ -310,6 +314,20 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   mehr erreichen können.
 - **Einordnung:** FOSSGIS-spezifisch
 - **Merge:** `chore/builder-vm`
+
+### Log-Wächter für kritische Build-Meldungen
+
+- **Dateien:** `fossgis/tools/check_build_log.sh`, `bin/build_chroot.sh`,
+  `fossgis/tools/record_full_build.sh`, `fossgis/tools/builder_vm.sh`
+- **Was:** `check_build_log.sh` sucht im Build-Log nach Meldungen wie
+  „target is busy“, „Device or resource busy“, „cannot remove …edit/“ und
+  Dateien, die sich während `mksquashfs` ändern. Trifft etwas zu, wird ein
+  scheinbar grüner Build (`exit=0`) auf `exit=1` gesetzt. `record_full_build.sh
+  green` und `builder_vm.sh fetch` lehnen solche Logs ab.
+- **Warum:** Der Vorfall vom 27.10.2026 endete mit `exit=0` trotz „target is busy“
+  und gelöschtem `/dev`.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `fix/build-safety-hardening`
 
 ## Hinweise
 

@@ -39,12 +39,13 @@ fragen. Lieber eine Aufgabe unerledigt lassen als den Rechner des Nutzers gefäh
    Die VM teilt keine Verzeichnisse mit dem Host; daran nichts ändern.
 7. Jede Änderung an `mount`, `umount`, `rm`, `chroot`, `systemd-nspawn` oder `sudo`
    in Build-Skripten ausdrücklich benennen, mit Risiko für den Build-Rechner.
-8. Nichts vom Build-Rechner in den Chroot einbinden, das beim Löschen oder Packen
-   Schaden anrichten kann, insbesondere nicht das echte `/dev`.
+8. Nichts vom Build-Rechner in den Chroot/Container einbinden, das beim Löschen oder
+   Packen Schaden anrichten kann, insbesondere nicht das echte `/dev`. Der Inchroot-
+   Teil läuft in `systemd-nspawn` mit privatem `/dev`.
 9. Verzeichnisse mit Mounts darunter nie mit `rm -rf` löschen; immer erst aushängen,
    prüfen, dann `rm -rf --one-file-system`.
-10. Teilbuilds (`local/inchroot.list`) dürfen keine Dienste im Chroot laufen lassen;
-    gestartete Dienste müssen vor Ende des Chroot-Teils gestoppt sein.
+10. Teilbuilds (`local/inchroot.list`) dürfen keine Dienste im Container laufen lassen;
+    gestartete Dienste müssen vor Ende des Inchroot-Teils gestoppt sein (`setdown.sh`).
 
 ## Auffälligkeiten
 

@@ -94,15 +94,15 @@ als grün gilt.
 
 | Maßnahme | Stand |
 |---|---|
-| Build-VM `fossgis/tools/builder_vm.sh` | getestet 27.10.2026 (create/start, Host-Ports gesperrt, Teilbuilds) |
-| `fossgis/tools/host_guard.sh` snapshot/check auf dem Host | getestet 27.10.2026 (positiv und negativ) |
-| `remove_chroot`: aushängen, prüfen, `rm -rf --one-file-system` | in `build/resolute-base`, im VM-Teilbuild genutzt |
-| belegtes `edit/dev`: lazy aushängen; Prozesse im Chroot brechen den Build ab | getestet: Teilbuild ohne `setdown.sh` -> `exit=1` vor dem Packen |
-| Abbruch vor `mksquashfs`, wenn unter `edit/` etwas eingehängt ist | in `build/resolute-base` |
-| Chroot-Teil in `systemd-nspawn` (eigenes `/dev`, eigene Mounts, alle Prozesse enden mit dem Container) | geplant |
-| `mksquashfs -one-file-system`, gescheitertes `umount` bricht ab | geplant |
-| Log-Wächter: kritische Meldungen machen den Build rot, `record_full_build.sh` lehnt ab | geplant |
-| `fossgis/tools/tests/test_build_safety.sh` mit einer Attrappe statt `/dev`: belegter Mount beim Aufräumen, `mksquashfs` über Mount-Grenzen, Mounts nach dem Container, übrig gebliebene Prozesse, statische Prüfung von `build_chroot.sh` | geplant; Vorprüfung vor jedem Build, statischer Teil in `check_clean` |
+| Build-VM `fossgis/tools/builder_vm.sh` | auf `master`, getestet 27.10.2026 (create/start, Host-Ports gesperrt, Teilbuilds) |
+| `fossgis/tools/host_guard.sh` snapshot/check auf dem Host | auf `master`, getestet 27.10.2026 (positiv und negativ) |
+| `remove_chroot`: aushängen, prüfen, `rm -rf --one-file-system` | auf `master`, im VM-Teilbuild genutzt |
+| belegtes `edit/dev`: lazy aushängen; Prozesse im Chroot brechen den Build ab | auf `master`, getestet: Teilbuild ohne `setdown.sh` -> `exit=1` vor dem Packen (Log 20261027-151552) |
+| Abbruch vor `mksquashfs`, wenn unter `edit/` etwas eingehängt ist | auf `master` |
+| Chroot-Teil in `systemd-nspawn` (eigenes `/dev`, eigene Mounts, alle Prozesse enden mit dem Container) | geschrieben (`fix/build-safety-hardening`); VM installiert `systemd-container` bei Bedarf |
+| `mksquashfs -one-file-system`, gescheitertes `umount` bricht ab | geschrieben (`fix/build-safety-hardening`), Log-Muster gegen alte Vorfall-Logs geprüft |
+| Log-Wächter: kritische Meldungen machen den Build rot, `record_full_build.sh` lehnt ab | geschrieben (`fix/build-safety-hardening`), Muster gegen Log 20261027-141554 geprüft |
+| `fossgis/tools/tests/test_build_safety.sh` mit einer Attrappe statt `/dev`: belegter Mount, `mksquashfs` über Mount-Grenzen, `rm --one-file-system`; statischer Teil in `check_clean` | geschrieben (`fix/build-safety-hardening`) |
 
 Direkte Builds auf dem Host gibt es nicht mehr. Builds laufen nur über
 `fossgis/tools/builder_vm.sh`.
