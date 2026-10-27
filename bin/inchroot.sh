@@ -108,20 +108,13 @@ export USER_NAME
 # SUDO_USER leaks in from the host's "sudo chroot" and must not be used here
 unset SUDO_USER
 
-cd /tmp/
-
+cd /usr/local/share/gisvm/bin
 chmod a+x bootstrap.sh
-
 ./bootstrap.sh "$GIT_BRANCH" "$GIT_USER"
 
-cd /usr/local/share/gisvm/bin
-
-# Copy external version information to be able to rename the builds
-cp /tmp/VERSION.txt /usr/local/share/gisvm/
-cp /tmp/CHANGES.txt /usr/local/share/gisvm/
-
-# FOSSGIS edition settings and local.env, exported for all install scripts
-FOSSGIS_DIR=/tmp/fossgis
+# FOSSGIS edition settings and local.env, exported for all install scripts.
+# Not under /tmp: systemd-nspawn mounts a tmpfs there from the live fstab.
+FOSSGIS_DIR=/usr/local/share/gisvm/fossgis-local
 . /usr/local/share/gisvm/fossgis/load_edition.sh
 echo "Edition: $EDITION_NAME ($MAP_CITY)"
 

@@ -52,6 +52,13 @@ run_static() {
    else
       fail "build_chroot.sh does not call systemd-nspawn"
    fi
+   if grep -E -q '/tmp/inchroot\.sh' "$BUILD_CHROOT" ; then
+      fail "build_chroot still starts inchroot from /tmp (hidden by nspawn tmpfs)"
+   elif grep -q '/usr/local/share/gisvm/bin/inchroot.sh' "$BUILD_CHROOT" ; then
+      pass "inchroot runs from /usr/local/share/gisvm"
+   else
+      fail "inchroot path not found in build_chroot.sh"
+   fi
    if grep -E -q 'mksquashfs .* -one-file-system' "$BUILD_CHROOT" ; then
       pass "mksquashfs -one-file-system"
    else

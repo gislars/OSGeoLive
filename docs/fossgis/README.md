@@ -8,6 +8,10 @@ Vor jedem Build und jeder Änderung an Build-Skripten:
 dort stehen zwei Vorfälle und die Regeln, die daraus folgen. Regeln für
 KI-Assistenten: [`AGENTS.md`](../../AGENTS.md).
 
+Warum die großen Schnitte so gewählt sind, steht in [adr/](adr/README.md)
+(eine Datei pro Entscheidung). `upstream-diff.md` bleibt die Liste der
+Dateiänderungen.
+
 ## Build starten (nur in der Build-VM)
 
 Gebaut wird ausschließlich in einer QEMU/KVM-VM, als normaler Benutzer, ohne `sudo`
@@ -47,11 +51,12 @@ Am Ende kopiert `fetch` ISO und Log nach `build/` und `build/logs/` und prüft m
 1. `bin/build_chroot.sh` kopiert die versionierten Dateien nach
    `/usr/local/share/gisvm` im Chroot.
 2. Danach kopiert es `fossgis/edition.conf` sowie aus `local/` die Einträge
-   `local.env`, `inchroot.list`, `artwork/` und `data/` nach `/tmp/fossgis`.
-   `local.env` bekommt dort die Rechte `600`.
+   `local.env`, `inchroot.list`, `artwork/` und `data/` nach
+   `/usr/local/share/gisvm/fossgis-local` (nicht nach `/tmp`, dort hängt nspawn
+   ein tmpfs ein). `local.env` bekommt dort die Rechte `600`.
 3. `bin/inchroot.sh` lädt beides über `fossgis/load_edition.sh` und exportiert die
    Werte für alle Install-Skripte.
-4. `bin/setdown.sh` löscht `/tmp/fossgis` am Ende, `inchroot.sh` zur Sicherheit
+4. `bin/setdown.sh` löscht `fossgis-local` am Ende, `inchroot.sh` zur Sicherheit
    ebenfalls.
 
 ## Lokale Einstellungen
