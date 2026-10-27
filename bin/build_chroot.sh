@@ -255,6 +255,28 @@ if [ -n "$LEAKED" ] ; then
    echo "$LEAKED" >&2
    exit 1
 fi
+
+# FOSSGIS edition settings and the local-only inputs (local.env, optional
+# inchroot.list, artwork, prepared data) go to /tmp/fossgis in the chroot;
+# setdown.sh deletes them again. local/ belongs to the main checkout, also
+# when building from a linked worktree.
+if [ -z "$FOSSGIS_LOCAL_DIR" ] ; then
+   FOSSGIS_LOCAL_DIR="$(dirname "$(git -C "$GIT_DIR" rev-parse --path-format=absolute --git-common-dir)")/local"
+fi
+FOSSGIS_TMP="$BUILD_DIR"/edit/tmp/fossgis
+sudo mkdir -p "$FOSSGIS_TMP"
+sudo cp "$GIT_DIR"/fossgis/edition.conf "$FOSSGIS_TMP"/
+for ITEM in local.env inchroot.list artwork data ; do
+   if [ -e "$FOSSGIS_LOCAL_DIR/$ITEM" ] ; then
+      echo "FOSSGIS: using $FOSSGIS_LOCAL_DIR/$ITEM"
+      sudo cp -a "$FOSSGIS_LOCAL_DIR/$ITEM" "$FOSSGIS_TMP"/
+   fi
+done
+if [ -f "$FOSSGIS_TMP"/local.env ] ; then
+   sudo chown root:root "$FOSSGIS_TMP"/local.env
+   sudo chmod 600 "$FOSSGIS_TMP"/local.env
+fi
+
 sudo chroot edit /bin/sh /tmp/inchroot.sh "$ARCH" "$BUILD_MODE" "$GIT_BRANCH" "$GIT_USER"
 
 #exit

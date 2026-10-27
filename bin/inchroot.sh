@@ -116,9 +116,28 @@ cd /usr/local/share/gisvm/bin
 cp /tmp/VERSION.txt /usr/local/share/gisvm/
 cp /tmp/CHANGES.txt /usr/local/share/gisvm/
 
+# FOSSGIS edition settings and local.env, exported for all install scripts
+FOSSGIS_DIR=/tmp/fossgis
+. /usr/local/share/gisvm/fossgis/load_edition.sh
+echo "Edition: $EDITION_NAME ($MAP_CITY)"
+
 #######################################################
 # Replacement for main.sh
 #######################################################
+
+# Partial build: local/inchroot.list replaces the script list below. One
+# script per line with its arguments, e.g. 'setup.sh "$BUILD_MODE"';
+# empty lines and lines starting with # are ignored.
+if [ -f "$FOSSGIS_DIR/inchroot.list" ] ; then
+echo "Partial build from $FOSSGIS_DIR/inchroot.list"
+grep -v -E '^[[:space:]]*(#|$)' "$FOSSGIS_DIR/inchroot.list" | \
+while read -r LINE ; do
+    echo "===================================================================="
+    echo "Partial build: $LINE"
+    echo "===================================================================="
+    eval "./$LINE"
+done
+else
 
 ./setup.sh "$BUILD_MODE"
 
@@ -217,6 +236,9 @@ cp /tmp/CHANGES.txt /usr/local/share/gisvm/
 ./install_desktop.sh
 ./install_icons_and_menus.sh
 ./setdown.sh
+
+fi
+rm -rf "$FOSSGIS_DIR"
 
 
 #######################################################

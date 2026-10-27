@@ -287,6 +287,10 @@ service apache2 stop
 #echo " Compress image by wiping the virtual disk, filling empty space with zero."
 #cat /dev/zero > zero.fill ; sync ; sleep 1 ; sync ; rm -f zero.fill
 
+# FOSSGIS: local inputs of the build (local.env with secrets, data) must
+# not stay in the image
+rm -rf /tmp/fossgis
+
 # Deleting users created by tomcat installer in chroot.
 # Hopefully they will be created on boot time by /usr/lib/sysusers.d/tomcat9.conf
 # deluser tomcat

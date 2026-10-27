@@ -100,16 +100,35 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** FOSSGIS-spezifisch
 - **Merge:** `chore/fork-defaults`
 
+### Edition-Einstellungen und lokale Eingaben
+
+- **Dateien:** `fossgis/edition.conf`, `fossgis/local.env.example`,
+  `fossgis/load_edition.sh`, `bin/build_chroot.sh`, `bin/inchroot.sh`,
+  `bin/setdown.sh`, `docs/fossgis/README.md`
+- **Was:** Alles, was sich jährlich ändert, steht in `fossgis/edition.conf`;
+  Secrets stehen in der nicht versionierten `local/local.env`. `build_chroot.sh`
+  kopiert `edition.conf` und aus `local/` die Einträge `local.env`, `inchroot.list`,
+  `artwork/` und `data/` nach `/tmp/fossgis` im Chroot. `inchroot.sh` lädt die Werte
+  über `load_edition.sh` und exportiert sie. `setdown.sh` und `inchroot.sh` löschen
+  `/tmp/fossgis` am Ende. Mit `local/inchroot.list` laufen nur die dort genannten
+  Skripte (Teilbuild).
+- **Warum:** Jahreswerte zentral statt fest in den Skripten; Secrets und große Daten
+  bleiben außerhalb des Repos; Teilbuilds für die Portierung, ohne `inchroot.sh`
+  jedes Mal zu ändern.
+- **Einordnung:** Teilbuild upstream-tauglich, Edition und `local/` FOSSGIS-spezifisch
+- **Merge:** `chore/fossgis-layout`
+
 ## Repository und Werkzeuge
 
 ### `.gitignore`
 
 - **Dateien:** `.gitignore`
-- **Was:** ignoriert `/build/` und `/osgeolive_old/`.
+- **Was:** ignoriert `/build/`, `/osgeolive_old/`, `/local/` und `/osgeolive-doc/`.
 - **Warum:** `build/` enthält Chroot, ISO und Logs. `osgeolive_old/` ist der nur
-  lesend genutzte Checkout der Arbeit von 2026.
-- **Einordnung:** `build/` upstream-tauglich, `osgeolive_old/` FOSSGIS-spezifisch
-- **Commits:** `4fc4f84d`, Merge `chore/ignore-osgeolive-old`
+  lesend genutzte Checkout der Arbeit von 2026. `local/` enthält Secrets, Daten und
+  Notizen, `osgeolive-doc/` den Klon des Doku-Forks.
+- **Einordnung:** `build/` upstream-tauglich, der Rest FOSSGIS-spezifisch
+- **Commits:** `4fc4f84d`, Merges `chore/ignore-osgeolive-old`, `chore/fossgis-layout`
 
 ### Prüfung vor dem Push
 
