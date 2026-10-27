@@ -203,6 +203,18 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** FOSSGIS-spezifisch
 - **Merge:** `docs/upstream-diff`
 
+### Sicherheitsregeln für Build und KI-Assistenten
+
+- **Dateien:** `AGENTS.md`, `docs/fossgis/build-safety.md`, `docs/fossgis/README.md`
+- **Was:** verbindliche Regeln für KI-Assistenten (`AGENTS.md`) und ein Dokument mit
+  zwei Vorfällen vom 27.10.2026, den versagten Sicherungen, Regeln für Build-Skripte
+  und den Stand der Schutzmaßnahmen.
+- **Warum:** Ein Teilbuild löschte über das eingebundene `/dev` die Gerätedateien des
+  Build-Rechners; ein danach empfohlener Reparaturbefehl beendete die Sitzung des
+  Nutzers. Das darf sich nicht wiederholen.
+- **Einordnung:** FOSSGIS-spezifisch (die Build-Regeln sind upstream-tauglich)
+- **Merge:** `docs/build-safety`
+
 ## Hinweise
 
 - **Zeilenenden:** Einige Upstream-Dateien haben CRLF-Zeilenenden, zum Beispiel
