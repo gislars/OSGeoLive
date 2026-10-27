@@ -95,6 +95,12 @@ cp ../app-conf/apt/keyrings/packages.mozilla.org.asc /etc/apt/keyrings/
 chmod a+r /etc/apt/keyrings/packages.mozilla.org.asc
 cp ../sources.list.d/mozilla.sources /etc/apt/sources.list.d/
 
+# QGIS 4.2 from qgis.org (Ubuntu universe still has 3.x); pin so apt prefers it
+cp ../app-conf/apt/keyrings/qgis-archive-keyring.gpg /etc/apt/keyrings/
+chmod a+r /etc/apt/keyrings/qgis-archive-keyring.gpg
+cp ../sources.list.d/qgis.sources /etc/apt/sources.list.d/
+cp ../app-conf/apt/qgis-pin.pref /etc/apt/preferences.d/
+
 apt-get -q update
 
 
