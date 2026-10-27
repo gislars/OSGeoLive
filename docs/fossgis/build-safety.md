@@ -79,16 +79,30 @@ Ein geplanter Neustart nach dem Speichern wäre der richtige Weg gewesen.
 
 ## Schutzmaßnahmen
 
+Die wichtigste Grenze ist die Build-VM: `build_chroot.sh` läuft nur noch in einer
+QEMU/KVM-VM (`fossgis/tools/builder_vm.sh`), die als normaler Benutzer startet.
+root gilt nur in der VM. Die VM teilt kein Verzeichnis mit dem Host; Quellen gehen
+als Git-Bundle des committeten Stands hinein, `local/` per rsync. Zurück kommen nur
+ISO, Log und neue Dateien für `local/cache/`. Verbindungen der VM zum Host
+(10.0.2.2) werden in der VM verworfen, ssh lauscht nur auf 127.0.0.1. CPU,
+Arbeitsspeicher und Plattengröße der VM sind begrenzt, vor dem Start und vor dem
+Zurückkopieren wird der freie Platz geprüft. `host_guard.sh` vergleicht vor und nach
+jedem Build `/dev`, Mounts und freien Platz auf dem Host.
+
+Die übrigen Maßnahmen schützen innerhalb der VM davor, dass ein fehlerhafter Build
+als grün gilt.
+
 | Maßnahme | Stand |
 |---|---|
-| `remove_chroot`: aushängen, prüfen, `rm -rf --one-file-system` | geschrieben in `build/resolute-base`, Commit ausstehend |
-| belegtes `edit/dev`: Prozesse im Chroot ins Log, lazy aushängen | geschrieben, Commit ausstehend |
-| Abbruch vor `mksquashfs`, wenn unter `edit/` etwas eingehängt ist | geschrieben, Commit ausstehend |
+| Build-VM `fossgis/tools/builder_vm.sh` | getestet 27.10.2026 (create/start, Host-Ports gesperrt, Teilbuilds) |
+| `fossgis/tools/host_guard.sh` snapshot/check auf dem Host | getestet 27.10.2026 (positiv und negativ) |
+| `remove_chroot`: aushängen, prüfen, `rm -rf --one-file-system` | in `build/resolute-base`, im VM-Teilbuild genutzt |
+| belegtes `edit/dev`: lazy aushängen; Prozesse im Chroot brechen den Build ab | getestet: Teilbuild ohne `setdown.sh` -> `exit=1` vor dem Packen |
+| Abbruch vor `mksquashfs`, wenn unter `edit/` etwas eingehängt ist | in `build/resolute-base` |
 | Chroot-Teil in `systemd-nspawn` (eigenes `/dev`, eigene Mounts, alle Prozesse enden mit dem Container) | geplant |
 | `mksquashfs -one-file-system`, gescheitertes `umount` bricht ab | geplant |
-| `fossgis/tools/host_guard.sh`: Gerätedateien, Zahl der Einträge in `/dev` und Mounts vor und nach jeder Phase vergleichen | geplant |
 | Log-Wächter: kritische Meldungen machen den Build rot, `record_full_build.sh` lehnt ab | geplant |
 | `fossgis/tools/tests/test_build_safety.sh` mit einer Attrappe statt `/dev`: belegter Mount beim Aufräumen, `mksquashfs` über Mount-Grenzen, Mounts nach dem Container, übrig gebliebene Prozesse, statische Prüfung von `build_chroot.sh` | geplant; Vorprüfung vor jedem Build, statischer Teil in `check_clean` |
 
-Bis die geplanten Maßnahmen umgesetzt und getestet sind, gibt es keine Builds mit
-Änderungen an Mounts, Chroot oder Aufräumen.
+Direkte Builds auf dem Host gibt es nicht mehr. Builds laufen nur über
+`fossgis/tools/builder_vm.sh`.

@@ -32,9 +32,11 @@ fragen. Lieber eine Aufgabe unerledigt lassen als den Rechner des Nutzers gefäh
 
 ## Build
 
-6. Kein Build-Befehl an den Nutzer, bevor die Sicherheitstests bestanden sind
-   (`fossgis/tools/tests/test_build_safety.sh`, sobald vorhanden; bis dahin keine
-   Builds mit Änderungen an Mounts, Chroot oder Aufräumen).
+6. Builds laufen nur in der Build-VM (`fossgis/tools/builder_vm.sh`), nie direkt
+   auf dem Build-Rechner. Kein `sudo ./bin/build_chroot.sh` auf dem Host, auch
+   nicht für Teilbuilds oder „nur kurz“. Nach jedem Build muss
+   `fossgis/tools/host_guard.sh check` bestehen (macht `builder_vm.sh fetch`).
+   Die VM teilt keine Verzeichnisse mit dem Host; daran nichts ändern.
 7. Jede Änderung an `mount`, `umount`, `rm`, `chroot`, `systemd-nspawn` oder `sudo`
    in Build-Skripten ausdrücklich benennen, mit Risiko für den Build-Rechner.
 8. Nichts vom Build-Rechner in den Chroot einbinden, das beim Löschen oder Packen
