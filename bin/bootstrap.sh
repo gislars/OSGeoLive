@@ -74,7 +74,7 @@ apt-get --assume-yes install git
 
 # Clone git repository to specified branch
 cd "$SCRIPT_DIR" || exit 1
-if [ -d gisvm/.git ] ; then
+if [ -d gisvm/.git ] || [ -f gisvm/VERSION.txt ] ; then
     echo "$SCRIPT_DIR/gisvm already exists, skipping clone."
 else
     git clone -b "$GIT_BRANCH" "$GIT_REPO" gisvm || exit 1
