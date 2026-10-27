@@ -51,13 +51,17 @@ TMP_DIR=/tmp/build_grass
 mkdir -p "$TMP_DIR"
 
 apt-get --quiet update
-apt-get --yes install grass-core grass-gui grass-doc libgdal-grass
+# libgdal-grass is not in Ubuntu 26.04; GRASS links GDAL via grass-core.
+# grass842 is a virtual Provides of grass-core 8.4.2 (needed by qgis-plugin-grass).
+apt-get --yes install grass-core grass-gui grass-doc
 
-cp /usr/share/applications/grass84.desktop "$USER_HOME/Desktop/"
-chown -R $USER_NAME:$USER_NAME "$USER_HOME/Desktop/grass84.desktop"
-
-cp /usr/share/applications/grass84.desktop \
-  /usr/local/share/applications/osgeo-grass84.desktop
+GRASS_DESKTOP=`ls /usr/share/applications/grass*.desktop 2>/dev/null | head -1`
+if [ -n "$GRASS_DESKTOP" ] ; then
+   GRASS_BASE=`basename "$GRASS_DESKTOP"`
+   cp "$GRASS_DESKTOP" "$USER_HOME/Desktop/"
+   chown -R $USER_NAME:$USER_NAME "$USER_HOME/Desktop/$GRASS_BASE"
+   cp "$GRASS_DESKTOP" "/usr/local/share/applications/osgeo-$GRASS_BASE"
+fi
 
 #### get sample data ####
 

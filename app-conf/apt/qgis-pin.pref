@@ -1,0 +1,12 @@
+# Prefer QGIS from qgis.org over Ubuntu universe (still ships 3.x on resolute).
+Package: qgis*
+Pin: origin qgis.org
+Pin-Priority: 700
+
+Package: libqgis*
+Pin: origin qgis.org
+Pin-Priority: 700
+
+Package: python3-qgis*
+Pin: origin qgis.org
+Pin-Priority: 700

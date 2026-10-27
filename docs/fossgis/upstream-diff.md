@@ -332,6 +332,28 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** FOSSGIS-spezifisch
 - **Merge:** `fix/build-safety-hardening`
 
+## GIS-Stack
+
+### QGIS 4.2 von qgis.org, GRASS 8.4 und ein GDAL
+
+- **Dateien:** `bin/setup.sh`, `bin/install_qgis.sh`, `bin/install_grass.sh`,
+  `bin/check_gis_stack.sh`, `bin/inchroot.sh`, `sources.list.d/qgis.sources`,
+  `app-conf/apt/qgis-pin.pref`, `app-conf/apt/keyrings/qgis-archive-keyring.gpg`,
+  `fossgis/tools/build_qgis_plugins_zip.py`
+- **Was:** QGIS 4.2 kommt von `qgis.org/debian resolute` (Keyring und Pinning gegen
+  Ubuntu-Universe mit QGIS 3.x). Installiert werden `qgis`, `python3-qgis`,
+  `qgis-plugin-grass` (und `qgis-server` weiter in `install_qgis_server.sh`).
+  GRASS 8.4 aus Ubuntu ohne `libgdal-grass` (Paket fehlt); Desktop-Datei wird
+  dynamisch ermittelt. `check_gis_stack.sh` bricht den Build ab, wenn GDAL nicht
+  3.12.x, GRASS nicht 8.4, QGIS nicht 4.2 oder mehr als eine `libgdal*` in den
+  Abhängigkeiten vorkommt, und prüft `ldd` am GRASS-Plugin. Plugin-ZIP für QGIS 4
+  liegt in `local/data/qgis/` (nicht im Repo).
+- **Warum:** Ein einheitlicher Stack ohne UbuntuGIS-PPA; QGIS 4 ist gegen
+  `libgdal38` und `grass842` gebaut.
+- **Einordnung:** upstream-tauglich (QGIS-Quelle und Prüfskript); Plugin-ZIP und
+  Pinning FOSSGIS-spezifisch
+- **Merge:** `build/gis-stack`
+
 ## Hinweise
 
 - **Zeilenenden:** Einige Upstream-Dateien haben CRLF-Zeilenenden, zum Beispiel
@@ -352,3 +374,5 @@ GIS-Stack und Anwendungen ergänzt.
 | PostgreSQL | 16 | 18 | upstream-tauglich |
 | Java | OpenJDK 17 (PPA) | OpenJDK 21 | upstream-tauglich |
 | GDAL (Bibliothek) | libgdal37 (3.11, PPA) | libgdal38 (3.12) | upstream-tauglich |
+| GRASS | 8.4 (PPA/Pinning) | 8.4.2 (Ubuntu) | upstream-tauglich |
+| QGIS | 3.40 (PPA) | 4.2.x (qgis.org resolute) | upstream-tauglich |
