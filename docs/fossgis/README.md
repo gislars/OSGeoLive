@@ -92,6 +92,18 @@ Der Build hält Downloads zwischen den Läufen in `local/cache/` vor (abschaltba
 - In der Build-VM liegt der Cache auf der VM-Platte; `builder_vm.sh build` kopiert
   `local/cache/` hinein, `fetch` nur neue Dateien zurück.
 
+## Optionales WLAN
+
+In `local/local.env` koennen `WIFI_SSID`, `WIFI_PSK` und optional `WIFI_KEY_MGMT`
+(`wpa-psk` oder `sae`) gesetzt werden. `bin/install_wifi.sh` schreibt dann
+`/etc/NetworkManager/system-connections/fossgis.nmconnection` mit Rechten `600`.
+Sind die Werte leer, wird der Schritt uebersprungen.
+
+Sicherheit: Das PSK liegt im ISO und ist fuer jeden lesbar, der das Image hat.
+Fuer Workshops einen eigenen Zugang nutzen, der nach der Konferenz wieder
+gesperrt wird. Die alte Datei `app-conf/wifi_connection.nmconnection` wird nicht
+uebernommen.
+
 ## Teilbuild
 
 Liegt `local/inchroot.list` vor, führt `inchroot.sh` nur die dort genannten Skripte

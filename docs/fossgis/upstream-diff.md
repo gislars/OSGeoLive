@@ -420,6 +420,17 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** temporär
 - **Merge:** `build/resolute-app-ports`
 
+## Optionales WLAN
+
+### Venue-Profil aus local.env
+
+- **Dateien:** `bin/install_wifi.sh`, `bin/inchroot.sh`, `fossgis/local.env.example`,
+  `docs/fossgis/README.md`
+- **Was:** Wenn `WIFI_SSID` und `WIFI_PSK` gesetzt sind, schreibt das Skript ein
+  NetworkManager-Profil. Sonst Skip mit Logzeile. Sicherheitshinweis in der README.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `feature/wifi-optional`
+
 ## Deutsche Systemvorgaben
 
 ### Locale, Tastatur, Zeitzone, Calamares, pgAdmin
