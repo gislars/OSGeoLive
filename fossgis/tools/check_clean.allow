@@ -13,5 +13,8 @@ line:password:[[:space:]]*user[[:space:]]*$
 line:MASTER_PASSWORD_REQUIRED[[:space:]]*=[[:space:]]*False
 # QGIS connection template filled with the public demo password variable
 line:password=\$PSWD$
+# cloud-init of the build VM: no password at all, ssh key login only
+line:^[[:space:]]*sudo: "ALL=\(ALL\) NOPASSWD:ALL"$
+line:^[[:space:]]*lock_passwd: true$
 # Browser log of the OpenLayers examples, public example token (fossgis2026)
 path:^ol_issues\.txt$
