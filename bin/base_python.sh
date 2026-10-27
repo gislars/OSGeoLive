@@ -43,7 +43,10 @@ apt-get install --yes python3-gdal python3-shapely python3-rasterio rasterio \
 # its dependencies are, so only mappyfile itself comes from PyPI
 MAPPYFILE_VERSION="1.2.0"
 apt-get install --yes python3-pip python3-lark python3-jsonschema python3-click
-pip3 install --no-deps --break-system-packages "mappyfile==$MAPPYFILE_VERSION"
+if ! pip3 install --no-deps --break-system-packages "mappyfile==$MAPPYFILE_VERSION" ; then
+   echo "ERROR: pip install mappyfile==$MAPPYFILE_VERSION failed" >&2
+   exit 1
+fi
 
 # Add a symlink for rio
 ln -s /usr/bin/rasterio /usr/local/bin/rio

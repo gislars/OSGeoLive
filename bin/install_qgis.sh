@@ -38,6 +38,18 @@ cd "$TMP_DIR"
 apt-get -q update
 
 # QGIS 4.2 from qgis.org/debian resolute (pinned in setup.sh)
+apt-get -q update
+echo "apt policy qgis:"
+apt-cache policy qgis | head -n 20
+QGIS_CANDIDATE=`apt-cache policy qgis | sed -n 's/^  Candidate: //p'`
+case "$QGIS_CANDIDATE" in
+   1:4.2.*) ;;
+   *)
+      echo "ERROR: apt candidate for qgis is '$QGIS_CANDIDATE', expected 1:4.2.x from qgis.org" >&2
+      exit 1
+      ;;
+esac
+
 apt-get --assume-yes install qgis \
    qgis-common python3-qgis python3-qgis-common \
    gpsbabel qgis-plugin-grass
@@ -48,6 +60,14 @@ if ! dpkg -s qgis > /dev/null 2>&1 ; then
    echo 'ERROR: QGIS package install failed! Aborting.'
    exit 1
 fi
+QGIS_VER=`dpkg -s qgis | sed -n 's/^Version: //p'`
+case "$QGIS_VER" in
+   1:4.2.*) ;;
+   *)
+      echo "ERROR: installed qgis is '$QGIS_VER', expected 1:4.2.x" >&2
+      exit 1
+      ;;
+esac
 
 # Plugins for QGIS 4 (Qt6): prefer the FOSSGIS local zip (not in git), then
 # app-data. Built with fossgis/tools/build_qgis_plugins_zip.py.

@@ -14,16 +14,30 @@ set -e
 
 echo "Checking GIS stack versions..."
 
-if ! command -v gdal-config > /dev/null ; then
-   echo "ERROR: gdal-config missing" >&2
-   exit 1
+# Prefer package metadata: gdalinfo --version can print nothing useful in
+# nspawn (PROJ data warnings, unexpected banner) while libgdal38 is fine.
+GDAL_VER=
+if command -v gdal-config > /dev/null ; then
+   GDAL_VER=`gdal-config --version 2>/dev/null || true`
 fi
-GDAL_VER=`gdal-config --version`
+if [ -z "$GDAL_VER" ] && command -v gdalinfo > /dev/null ; then
+   GDAL_VER=`gdalinfo --version 2>/dev/null | \
+      sed -n 's/^GDAL \([0-9][0-9.]*\).*/\1/p' | head -n 1`
+fi
+if [ -z "$GDAL_VER" ] ; then
+   GDAL_VER=`python3 -c 'from osgeo import gdal; print(gdal.__version__)' 2>/dev/null || true`
+fi
+if [ -z "$GDAL_VER" ] ; then
+   GDAL_VER=`dpkg-query -W -f='${Version}' libgdal38 2>/dev/null | \
+      sed -n 's/^\([0-9][0-9.]*\).*/\1/p'`
+fi
 echo "GDAL: $GDAL_VER"
 case "$GDAL_VER" in
    3.12.*) ;;
    *)
-      echo "ERROR: expected GDAL 3.12.x, got $GDAL_VER" >&2
+      echo "ERROR: expected GDAL 3.12.x, got ${GDAL_VER:-<empty>}" >&2
+      command -v gdalinfo > /dev/null && gdalinfo --version >&2 || true
+      dpkg-query -W libgdal38 >&2 || true
       exit 1
       ;;
 esac
@@ -32,10 +46,23 @@ if ! command -v grass > /dev/null ; then
    echo "ERROR: grass missing" >&2
    exit 1
 fi
-GRASS_VER=`grass --version 2>&1 | head -n 1`
+# grass --version may print locale warnings before the version line.
+GRASS_VER=
+if grass --config version > /dev/null 2>&1 ; then
+   GRASS_VER=`grass --config version 2>/dev/null || true`
+fi
+if [ -z "$GRASS_VER" ] ; then
+   GRASS_VER=`grass --version 2>&1 | grep -E 'GRASS [0-9]|^[0-9]+\.[0-9]' | head -n 1`
+fi
+if [ -z "$GRASS_VER" ] ; then
+   GRASS_VER=`dpkg-query -W -f='${Version}' grass-core 2>/dev/null | \
+      sed -n 's/^\([0-9][0-9.]*\).*/\1/p'`
+fi
 echo "GRASS: $GRASS_VER"
 echo "$GRASS_VER" | grep -q '8\.4' || {
-   echo "ERROR: expected GRASS 8.4.x in: $GRASS_VER" >&2
+   echo "ERROR: expected GRASS 8.4.x in: ${GRASS_VER:-<empty>}" >&2
+   grass --version >&2 || true
+   dpkg-query -W grass-core >&2 || true
    exit 1
 }
 

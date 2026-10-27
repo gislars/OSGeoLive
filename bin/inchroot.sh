@@ -127,13 +127,22 @@ echo "Edition: $EDITION_NAME ($MAP_CITY)"
 # empty lines and lines starting with # are ignored.
 if [ -f "$FOSSGIS_DIR/inchroot.list" ] ; then
 echo "Partial build from $FOSSGIS_DIR/inchroot.list"
-grep -v -E '^[[:space:]]*(#|$)' "$FOSSGIS_DIR/inchroot.list" | \
-while read -r LINE ; do
+# Do not use a pipe to while: failures must abort the build (set -e is
+# ignored in a pipeline's non-last commands on dash).
+PARTIAL_LIST=`mktemp`
+grep -v -E '^[[:space:]]*(#|$)' "$FOSSGIS_DIR/inchroot.list" > "$PARTIAL_LIST"
+while IFS= read -r LINE ; do
     echo "===================================================================="
     echo "Partial build: $LINE"
     echo "===================================================================="
-    eval "./$LINE"
-done
+    # shellcheck disable=SC2086
+    eval "./$LINE" || {
+        echo "ERROR: partial build step failed: $LINE" >&2
+        rm -f "$PARTIAL_LIST"
+        exit 1
+    }
+done < "$PARTIAL_LIST"
+rm -f "$PARTIAL_LIST"
 else
 
 ./setup.sh "$BUILD_MODE"

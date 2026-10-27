@@ -25,14 +25,14 @@
 #   the host (10.0.2.2) are dropped inside the VM. ssh listens on
 #   127.0.0.1 only.
 #
-# Settings (environment): FOSSGIS_VM_CPUS (8), FOSSGIS_VM_RAM (16G),
+# Settings (environment): FOSSGIS_VM_CPUS (8), FOSSGIS_VM_RAM (32G),
 #   FOSSGIS_VM_DISK (80G), FOSSGIS_VM_SSH_PORT (2227),
 #   FOSSGIS_VM_MARGIN_GB (20, free space that must remain on the host).
 #
 #############################################################################
 
 VM_CPUS="${FOSSGIS_VM_CPUS:-8}"
-VM_RAM="${FOSSGIS_VM_RAM:-16G}"
+VM_RAM="${FOSSGIS_VM_RAM:-32G}"
 VM_DISK="${FOSSGIS_VM_DISK:-80G}"
 VM_SSH_PORT="${FOSSGIS_VM_SSH_PORT:-2227}"
 VM_MARGIN_GB="${FOSSGIS_VM_MARGIN_GB:-20}"
@@ -158,8 +158,37 @@ write_files:
           ip daddr 10.0.2.2 drop
         }
       }
+  # Prefer IPv4: QEMU user networking often returns AAAA first while IPv6
+  # outbound is flaky, which shows up as "Temporary failure resolving".
+  - path: /etc/gai.conf.d/fossgis-ipv4
+    permissions: "0644"
+    content: |
+      precedence ::ffff:0:0/96  100
+  - path: /etc/apt/apt.conf.d/99fossgis-network
+    permissions: "0644"
+    content: |
+      Acquire::Retries "5";
+      Acquire::ForceIPv4 "true";
+  # QEMU's built-in DNS (10.0.2.3) and the stub listener flake under apt
+  # load. Public resolvers, stub off, static /etc/resolv.conf (see runcmd).
+  - path: /etc/systemd/resolved.conf.d/fossgis-dns.conf
+    permissions: "0644"
+    content: |
+      [Resolve]
+      DNS=1.1.1.1 8.8.8.8
+      FallbackDNS=9.9.9.9
+      Domains=~.
+      DNSStubListener=no
+  - path: /etc/resolv.conf.fossgis
+    permissions: "0644"
+    content: |
+      nameserver 1.1.1.1
+      nameserver 8.8.8.8
+      options timeout:2 attempts:5
 runcmd:
   - [systemctl, enable, --now, nftables]
+  - [systemctl, restart, systemd-resolved]
+  - [cp, -f, /etc/resolv.conf.fossgis, /etc/resolv.conf]
   - [mkdir, -p, $VM_BASE/local, $VM_BUILD]
   - [chown, -R, builder:builder, $VM_BASE]
 EOF
@@ -240,6 +269,31 @@ cmd_build() {
    fi
 
    vm_ssh "set -e
+      # Existing VMs were created before these files existed in cloud-init.
+      # Do not match the commented example in the stock /etc/gai.conf.
+      sudo mkdir -p /etc/gai.conf.d /etc/systemd/resolved.conf.d
+      printf '%s\n' 'precedence ::ffff:0:0/96  100' | \
+         sudo tee /etc/gai.conf.d/fossgis-ipv4 > /dev/null
+      # Ubuntu reads only /etc/gai.conf, so append an active line if missing.
+      if ! grep -qE '^[[:space:]]*precedence[[:space:]]+::ffff:0:0/96' /etc/gai.conf 2>/dev/null ; then
+         printf '\n# fossgis builder-vm\nprecedence ::ffff:0:0/96  100\n' | \
+            sudo tee -a /etc/gai.conf > /dev/null
+      fi
+      printf '%s\n' 'Acquire::Retries \"5\";' 'Acquire::ForceIPv4 \"true\";' | \
+         sudo tee /etc/apt/apt.conf.d/99fossgis-network > /dev/null
+      # Public DNS, no stub: 127.0.0.53 and QEMU 10.0.2.3 fail under apt load.
+      # build_chroot.sh also writes this into the nspawn chroot with
+      # --resolv-conf=off so nspawn cannot copy the stub back in.
+      printf '%s\n' '[Resolve]' 'DNS=1.1.1.1 8.8.8.8' 'FallbackDNS=9.9.9.9' \
+         'Domains=~.' 'DNSStubListener=no' | \
+         sudo tee /etc/systemd/resolved.conf.d/fossgis-dns.conf > /dev/null
+      printf '%s\n' 'nameserver 1.1.1.1' 'nameserver 8.8.8.8' \
+         'options timeout:2 attempts:5' | sudo tee /etc/resolv.conf.fossgis > /dev/null
+      sudo systemctl restart systemd-resolved
+      sudo cp -f /etc/resolv.conf.fossgis /etc/resolv.conf
+      # Fail the build early if DNS is still broken.
+      getent ahostsv4 archive.ubuntu.com > /dev/null
+      getent ahostsv4 pypi.org > /dev/null
       if ! command -v systemd-nspawn > /dev/null ; then
          sudo apt-get update -qq
          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq systemd-container
