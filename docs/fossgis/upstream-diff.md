@@ -78,6 +78,18 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   wird mit `build/resolute-base` ohnehin 26.04.1.
 - **Merge:** `fix/build-iso-download`
 
+### ISO mit squashfs über 4 GiB
+
+- **Dateien:** `bin/build_chroot.sh`
+- **Was:** `xorriso` bekommt `-iso-level 3`. Scheitern `mksquashfs` oder `xorriso`,
+  bricht der Build ab, bevor aufgeräumt wird; `edit/` bzw. `extract-cd/` bleiben
+  erhalten.
+- **Warum:** Mit 24.04.5 ist `casper/filesystem.squashfs` 4,28 GB groß; ohne
+  ISO-Level 3 lehnt libisofs Dateien ab 4 GiB ab. Der Build lief trotzdem bis zum
+  Ende und löschte das Ergebnis.
+- **Einordnung:** upstream-tauglich
+- **Merge:** `fix/iso-large-squashfs`
+
 ### Vorgabe-Repository ist der Fork
 
 - **Dateien:** `bin/build_chroot.sh`, `bin/inchroot.sh`, `bin/bootstrap.sh`

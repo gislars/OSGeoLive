@@ -411,7 +411,10 @@ echo "Compressing filesystem..."
 echo "======================================"
 #Compress filesystem
 sudo rm extract-cd/casper/filesystem.squashfs
-sudo mksquashfs edit extract-cd/casper/filesystem.squashfs
+if ! sudo mksquashfs edit extract-cd/casper/filesystem.squashfs ; then
+   echo "ERROR: mksquashfs failed, edit/ is kept." >&2
+   exit 1
+fi
 # sudo mksquashfs edit extract-cd/casper/filesystem.squashfs -no-progress
 echo "squashfs size:"
 ls -l extract-cd/casper/filesystem.squashfs
@@ -460,7 +463,9 @@ if [ "$ARCH" = "amd64" ] ; then
    #    -boot-load-size 4 -boot-info-table --grub2-boot-info -eltorito-alt-boot \
    #    -e '--interval:appended_partition_2:all::' -no-emul-boot \
    #    -o ../"$ISO_NAME.iso" .
+    # -iso-level 3: filesystem.squashfs is larger than 4 GiB
     sudo xorriso -as mkisofs -r \
+      -iso-level 3 \
       -V "$IMAGE_NAME" \
       --grub2-mbr ../"$MBR" \
       -partition_offset 16 \
@@ -484,6 +489,14 @@ else
       boot/grub/i386-pc/eltorito.img -c boot.catalog -no-emul-boot \
       -boot-load-size 4 -boot-info-table -o ../"$ISO_NAME.iso" .
    # sudo isohybrid ../"$ISO_NAME.iso"
+fi
+ISO_RC=$?
+if [ "$ISO_RC" -ne 0 ] || [ ! -s ../"$ISO_NAME.iso" ] ; then
+   echo "ERROR: creating $ISO_NAME.iso failed, extract-cd/ is kept for inspection." >&2
+   sudo rm -f ../"$ISO_NAME.iso"
+   cd "$BUILD_DIR"
+   sudo umount mnt
+   exit 1
 fi
 
 echo
