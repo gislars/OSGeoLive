@@ -5,6 +5,8 @@
 
 # The search patterns themselves
 path:^fossgis/tools/check_clean\.(sh|allow)$
+# Empty assignments, e.g. in fossgis/local.env.example
+line:^[[:space:]]*[A-Za-z0-9_]+=(""|'')?[[:space:]]*(#.*)?$
 # Public live session login user/user, documented in passwords.txt
 line:password:[[:space:]]*user[[:space:]]*$
 # pgAdmin desktop mode without master password
