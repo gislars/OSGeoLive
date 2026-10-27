@@ -38,7 +38,9 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Was:** `build_chroot.sh` baut aus dem Checkout, aus dem es aufgerufen wird, nach
   `./build` (änderbar über `BUILD_DIR`) und kopiert den Arbeitsbaum in den Chroot,
   statt von GitHub zu klonen. Reste abgebrochener Builds werden vorher ausgehängt und
-  gelöscht. Ohne Tags dient die Zahl der Commits als Build-Nummer.
+  gelöscht. Ohne Tags dient die Zahl der Commits als Build-Nummer. Die Build-Nummer
+  zählt nur ab numerischen Release-Tags (`git describe --match '[0-9]*'`), damit
+  Fork-Tags wie `fossgis2027-base` sie nicht verfälschen.
   `bootstrap.sh` nimmt auf dem Host den Benutzer, der `sudo` aufgerufen hat, bricht
   bei unbekannten Benutzern ab und kann mehrfach laufen (vorhandener Klon wird
   übersprungen, `ln -sfn`). `inchroot.sh` setzt `USER_NAME=user` vor `bootstrap.sh`

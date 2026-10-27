@@ -92,7 +92,8 @@ cd "$GIT_DIR"
 REVISION=`git show-ref --head --hash head --hash=7`
 REVISION_FULL=`git show-ref --head --hash head`
 
-GIT_BUILD=`git describe --long --tags 2>/dev/null | awk -F'-' '{print $2}'`
+# Only release tags like 17.0.0, fork tags such as fossgis2027-base contain dashes
+GIT_BUILD=`git describe --long --tags --match '[0-9]*' 2>/dev/null | awk -F'-' '{print $2}'`
 if [ -z "$GIT_BUILD" ] ; then
     GIT_BUILD=`git rev-list --count HEAD`
 fi

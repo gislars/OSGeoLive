@@ -21,7 +21,7 @@ git rev-parse -q --verify "$BRANCH^{commit}" > /dev/null || { echo "unknown revi
 BASE=$(git merge-base "$UPSTREAM" "$BRANCH")
 echo "Upstream:   $UPSTREAM $(git rev-parse --short "$UPSTREAM")"
 echo "Merge base: $(git log -1 --format='%h %ad %s' --date=short "$BASE")"
-echo "Branch:     $BRANCH $(git describe --long --tags "$BRANCH" 2>/dev/null)"
+echo "Branch:     $BRANCH $(git describe --long --tags --match '[0-9]*' "$BRANCH" 2>/dev/null)"
 echo "Upstream commits not yet merged: $(git rev-list --count "$BRANCH..$UPSTREAM")"
 echo
 

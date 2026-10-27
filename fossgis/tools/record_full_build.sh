@@ -27,7 +27,7 @@ fi
 mkdir -p "$TOP/build"
 {
     echo "commit=$(git rev-parse HEAD)"
-    echo "describe=$(git describe --long --tags 2>/dev/null)"
+    echo "describe=$(git describe --long --tags --match '[0-9]*' 2>/dev/null)"
     echo "date=$(date -Iseconds)"
     echo "result=$RESULT"
     if [ -n "$LOG" ] && [ -f "$LOG" ] ; then
