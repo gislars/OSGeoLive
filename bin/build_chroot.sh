@@ -123,6 +123,13 @@ if [ -z "$FOSSGIS_BUILD_LOG" ] ; then
     BUILD_RC=`cat "$FOSSGIS_BUILD_LOG.rc" 2>/dev/null || echo interrupted`
     rm -f "$FOSSGIS_BUILD_LOG.rc"
 
+    # exit=0 with a damaged image or a host-risk message still counts as failed
+    if [ "$BUILD_RC" = "0" ] && \
+          ! "$GIT_DIR"/fossgis/tools/check_build_log.sh "$FOSSGIS_BUILD_LOG" ; then
+        echo "ERROR: critical messages in the build log, marking exit=1." >&2
+        BUILD_RC=1
+    fi
+
     ISO_FILE="$BUILD_DIR/$ISO_NAME.iso"
     if [ "$BUILD_RC" = "0" ] && [ -s "$ISO_FILE" ] ; then
         ISO_INFO="`basename "$ISO_FILE"` sha256=`sha256sum "$ISO_FILE" | cut -d' ' -f1`"
@@ -182,8 +189,9 @@ mounts_below() {
     awk -v d="$1" '$2 == d || index($2, d "/") == 1 {print $2}' /proc/self/mounts | sort -r
 }
 
-# rm -rf for the chroot: edit/dev is a bind mount of the host's /dev, so
-# everything below it is detached first and rm never leaves the filesystem
+# rm -rf for the chroot: detach anything still mounted below it first
+# (legacy edit/dev binds of the host /dev, cache mounts, nspawn leftovers)
+# and never cross filesystem boundaries
 remove_chroot() {
     for MOUNTPOINT in `mounts_below "$1"` ; do
         sudo umount -l "$MOUNTPOINT"
@@ -370,11 +378,13 @@ echo "======================================"
 sudo cp /etc/resolv.conf edit/etc/
 sudo cp /etc/hosts edit/etc/
 
-#These mount important directories of your host system - if you later
-# decide to delete the edit/ directory, then make sure to unmount
-# before doing so, otherwise your host system will become unusable at
-# least temporarily until reboot
-sudo mount --bind /dev/ edit/dev
+# Do not bind-mount the host's /dev into edit/. A busy umount plus rm -rf
+# once wiped the build host's device nodes. systemd-nspawn gives the build
+# its own /dev; when the container exits, leftover processes are killed.
+if ! command -v systemd-nspawn > /dev/null ; then
+   echo "ERROR: systemd-nspawn is missing (package systemd-container)." >&2
+   exit 1
+fi
 
 # The apt source of the live system for the disc (used by Calamares) has no
 # /cdrom in the chroot and makes every apt-get update fail, park it meanwhile
@@ -384,11 +394,10 @@ if [ -f "$CDROM_SOURCES" ] ; then
 fi
 
 echo
-echo "Starting build in chroot"
+echo "Starting build in systemd-nspawn"
 echo "======================================"
 
-#NOW IN CHROOT
-#sudo chroot edit
+#NOW IN THE CONTAINER
 sudo cp "$DIR"/inchroot.sh "$BUILD_DIR"/edit/tmp/
 sudo cp "$DIR"/bootstrap.sh "$BUILD_DIR"/edit/tmp/
 sudo cp "$GIT_DIR"/VERSION.txt "$BUILD_DIR"/edit/tmp/
@@ -456,6 +465,7 @@ if [ -z "$FOSSGIS_CACHE_DIR" ] ; then
    FOSSGIS_CACHE_DIR="$FOSSGIS_LOCAL_DIR/cache"
 fi
 WGET_WRAPPER_MARK="FOSSGIS wget cache wrapper"
+NSPAWN_BINDS=""
 if [ "$FOSSGIS_CACHE" != "0" ] ; then
    echo "FOSSGIS: download cache in $FOSSGIS_CACHE_DIR"
    for CACHE_SUBDIR in "$FOSSGIS_LOCAL_DIR" "$FOSSGIS_CACHE_DIR" \
@@ -466,41 +476,51 @@ if [ "$FOSSGIS_CACHE" != "0" ] ; then
       fi
    done
    mkdir -p "$FOSSGIS_CACHE_DIR"/apt/partial
+   FOSSGIS_CACHE_DIR=`cd "$FOSSGIS_CACHE_DIR" && pwd`
    sudo mkdir -p edit/var/cache/apt/archives edit/var/cache/fossgis-downloads
-   sudo mount --bind "$FOSSGIS_CACHE_DIR"/apt edit/var/cache/apt/archives
-   sudo mount --bind "$FOSSGIS_CACHE_DIR"/downloads edit/var/cache/fossgis-downloads
+   # nspawn binds these for the container lifetime; no host-side bind mounts
+   NSPAWN_BINDS="--bind=$FOSSGIS_CACHE_DIR/apt:/var/cache/apt/archives --bind=$FOSSGIS_CACHE_DIR/downloads:/var/cache/fossgis-downloads"
    sudo install -m 755 "$GIT_DIR"/fossgis/tools/wget_cache.sh edit/usr/local/bin/wget
 fi
 
-sudo chroot edit /bin/sh /tmp/inchroot.sh "$ARCH" "$BUILD_MODE" "$GIT_BRANCH" "$GIT_USER"
+# Private /dev, own mounts; share the host network for apt. When the command
+# exits, systemd-nspawn stops every process left in the container.
+# shellcheck disable=SC2086
+if ! sudo systemd-nspawn \
+      --directory="$BUILD_DIR/edit" \
+      --machine="fossgis-build-$$" \
+      --register=no \
+      --network-namespace-path=/proc/1/ns/net \
+      --setenv=FOSSGIS_NSPAWN=1 \
+      $NSPAWN_BINDS \
+      /bin/sh /tmp/inchroot.sh "$ARCH" "$BUILD_MODE" "$GIT_BRANCH" "$GIT_USER"
+then
+   echo "ERROR: systemd-nspawn / inchroot.sh failed." >&2
+   exit 1
+fi
 
 #exit
-#OUT OF CHROOT
+#OUT OF THE CONTAINER
 echo
 echo "Finished chroot part"
 echo "======================================"
 cd "$BUILD_DIR"
-CHROOT_PROCESSES=`for PROC_DIR in /proc/[0-9]* ; do
-   if [ "$(sudo readlink "$PROC_DIR"/root 2>/dev/null)" = "$BUILD_DIR/edit" ] ; then
-      ps -o pid=,args= -p "${PROC_DIR#/proc/}"
-   fi
-done`
-if ! sudo umount edit/dev ; then
-   # Detach it anyway, neither mksquashfs nor rm -rf may reach the host's /dev
-   echo "WARNING: edit/dev is busy, detaching it lazily." >&2
-   sudo umount -l edit/dev
-fi
 if [ -f "$BUILD_DIR"/cdrom.sources.parked ] ; then
    sudo mv "$BUILD_DIR"/cdrom.sources.parked "$CDROM_SOURCES"
 fi
 
-# Detach the cache before the chroot is packed, normally setdown.sh did it
-for MOUNTPOINT in edit/var/cache/apt/archives edit/var/cache/fossgis-downloads ; do
+# Leftover binds (should not exist after nspawn); never pack or delete them
+for MOUNTPOINT in edit/var/cache/apt/archives edit/var/cache/fossgis-downloads \
+      edit/dev edit/dev/pts edit/proc edit/sys ; do
    if mountpoint -q "$MOUNTPOINT" ; then
-      sudo umount "$MOUNTPOINT" || sudo umount -l "$MOUNTPOINT"
+      if ! sudo umount "$MOUNTPOINT" ; then
+         echo "ERROR: $MOUNTPOINT is busy, detaching it lazily and aborting." >&2
+         sudo umount -l "$MOUNTPOINT"
+         exit 1
+      fi
    fi
    if mountpoint -q "$MOUNTPOINT" ; then
-      echo "ERROR: $MOUNTPOINT is still mounted, the cache would end up in the image." >&2
+      echo "ERROR: $MOUNTPOINT is still mounted, it would end up in the image." >&2
       exit 1
    fi
 done
@@ -516,6 +536,11 @@ if [ -n "`mounts_below "$BUILD_DIR"/edit`" ] ; then
    mounts_below "$BUILD_DIR"/edit >&2
    exit 1
 fi
+CHROOT_PROCESSES=`for PROC_DIR in /proc/[0-9]* ; do
+   if [ "$(sudo readlink "$PROC_DIR"/root 2>/dev/null)" = "$BUILD_DIR/edit" ] ; then
+      ps -o pid=,args= -p "${PROC_DIR#/proc/}"
+   fi
+done`
 if [ -n "$CHROOT_PROCESSES" ] ; then
    echo "ERROR: processes still run in the chroot and would change the image" \
         "while it is packed. A partial build list that starts services must" \
@@ -725,7 +750,8 @@ echo "Compressing filesystem..."
 echo "======================================"
 #Compress filesystem
 sudo rm -f extract-cd/casper/filesystem.squashfs
-if ! sudo mksquashfs edit extract-cd/casper/filesystem.squashfs ; then
+# -one-file-system: never follow a leftover bind mount (especially edit/dev)
+if ! sudo mksquashfs edit extract-cd/casper/filesystem.squashfs -one-file-system ; then
    echo "ERROR: mksquashfs failed, edit/ is kept." >&2
    exit 1
 fi

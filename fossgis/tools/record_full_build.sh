@@ -22,6 +22,7 @@ RESULT="$1"
 NOTE="${3:-}"
 
 TOP=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)") || exit 2
+TOOLS_DIR=$(cd "$(dirname "$0")" && pwd)
 if [ -n "$(git status --porcelain --untracked-files=no)" ] ; then
     echo "Working tree has uncommitted changes, the build would not match HEAD." >&2
     exit 1
@@ -54,6 +55,10 @@ if [ "$RESULT" = "green" ] ; then
     fi
     if [ "$(header exit)" != "0" ] || [ "$(header iso)" = "none" ] ; then
         echo "Build log $LOG shows a failed build (exit $(header exit), iso $(header iso))." >&2
+        exit 1
+    fi
+    if ! "$TOOLS_DIR/check_build_log.sh" "$LOG" ; then
+        echo "Build log $LOG has critical messages, refusing result=green." >&2
         exit 1
     fi
 fi
