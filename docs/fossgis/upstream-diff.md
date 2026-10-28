@@ -443,16 +443,17 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** FOSSGIS-spezifisch (Pfad); Ersatz upstream-tauglich
 - **Merge:** `build/resolute-app-ports`
 
-### Fehlende Resolute-Debs per osgeolive-venv (istsos, datacube, ipyleaflet)
+### Fehlende Resolute-Debs per osgeolive-venv (datacube, ipyleaflet); istsos aus
 
-- **Dateien:** `bin/install_istsos.sh`, `bin/install_datacube.sh`,
-  `bin/install_jupyter.sh`, `bin/tools/osgeolive_venv.sh`
-- **Was:** Unter 26.04 fehlen `python3-istsos`, `python3-datacube`,
-  `python3-odc-geo`, `python3-odc-stac`, `python3-ipyleaflet` (build126:
-  `Unable to locate package`). Installation per `pip` in `/opt/osgeolive-venv`.
-  apt-Fehler brechen die Skripte ab (`set -e`).
-- **Einordnung:** FOSSGIS-spezifisch (venv-Pfad); Ersatz temporaer bis Debs existieren
-- **Merge:** `fix/venv-missing-pkgs`
+- **Dateien:** `bin/install_datacube.sh`, `bin/install_jupyter.sh`,
+  `bin/install_istsos.sh`, `bin/inchroot.sh`, `bin/tools/osgeolive_venv.sh`
+- **Was:** Unter 26.04 fehlen `python3-datacube`, `python3-odc-*`,
+  `python3-ipyleaflet` (build126). Installation per `pip` in
+  `/opt/osgeolive-venv`. `istsos`: kein Deb und auf PyPI nur ge yankte
+  `3.0.0b1` / `No matching distribution` (build138); aus `inchroot.sh`
+  auskommentiert, Skript bleibt fuer spaeter.
+- **Einordnung:** FOSSGIS-spezifisch; istsos temporaer entfernt
+- **Merge:** `fix/venv-missing-pkgs`, `fix/drop-istsos-no-pip`
 
 ### Firefox Deutsch ohne firefox-locale-de
 
