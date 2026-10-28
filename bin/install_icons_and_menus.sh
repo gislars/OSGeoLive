@@ -475,6 +475,24 @@ EOF
 cp -a "/usr/share/applications/$WORKSHOP_INSTALL_FILE" "$USER_HOME/Desktop/"
 chown $USER_NAME:$USER_NAME "$USER_HOME/Desktop/$WORKSHOP_INSTALL_FILE"
 
+##### FOSSGIS workshop downloads (only if WORKSHOP_URL is set in edition/local.env)
+if [ -n "${WORKSHOP_URL:-}" ] ; then
+   WORKSHOP_DOWNLOADS_FILE="workshop_downloads.desktop"
+   cat << EOF > "/usr/share/applications/$WORKSHOP_DOWNLOADS_FILE"
+[Desktop Entry]
+Name=Workshop Downloads
+Comment=${EDITION_NAME:-FOSSGIS} Workshopdaten
+Exec=firefox ${WORKSHOP_URL}
+Icon=folder-download
+Terminal=false
+Type=Application
+Categories=Application;Education;Geography;
+StartupNotify=true
+EOF
+   cp -a "/usr/share/applications/$WORKSHOP_DOWNLOADS_FILE" "$USER_HOME/Desktop/"
+   chown $USER_NAME:$USER_NAME "$USER_HOME/Desktop/$WORKSHOP_DOWNLOADS_FILE"
+fi
+
 ##### Setup INSPIRE installation icon
 INSPIRE_INSTALL_FILE="inspire.desktop"
 cat << EOF > "/usr/share/applications/$INSPIRE_INSTALL_FILE"

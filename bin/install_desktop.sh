@@ -35,17 +35,29 @@ USER_HOME="/home/$USER_NAME"
 cp ../desktop-conf/passwords.txt "$USER_HOME/Desktop/"
 chown "$USER_NAME":"$USER_NAME" "$USER_HOME/Desktop/passwords.txt"
 
-# Setup the default desktop background image
-cp ../desktop-conf/osgeo-desktop.png \
-    /usr/share/lubuntu/wallpapers/
-
+# Desktop background: local/artwork/<WALLPAPER>, else desktop-conf/, else OSGeo default
+WALLPAPER_NAME="${WALLPAPER:-osgeo-desktop.png}"
+WALLPAPER_SRC=""
+for CAND in \
+   "${FOSSGIS_DIR:-}/artwork/$WALLPAPER_NAME" \
+   "$BUILD_DIR/../desktop-conf/$WALLPAPER_NAME" \
+   "$BUILD_DIR/../desktop-conf/osgeo-desktop.png" ; do
+   if [ -n "$CAND" ] && [ -f "$CAND" ] ; then
+      WALLPAPER_SRC="$CAND"
+      break
+   fi
+done
+cp "$WALLPAPER_SRC" /usr/share/lubuntu/wallpapers/"$WALLPAPER_NAME"
 cp ../desktop-conf/osgeo-desktop-transparent.png \
    /usr/share/lubuntu/wallpapers/
+# Keep classic name as symlink for scripts that expect it
+ln -sfn "$WALLPAPER_NAME" /usr/share/lubuntu/wallpapers/osgeo-desktop.png
+echo "FOSSGIS: desktop wallpaper from $WALLPAPER_SRC"
 
 ### Set the desktop background
 sed -i -e 's|^DesktopShortcuts=.*|DesktopShortcuts=Home, Trash|' \
        -e 's|^WallpaperMode=.*|WallpaperMode=zoom|' \
-       -e 's|^Wallpaper=.*|Wallpaper=/usr/share/lubuntu/wallpapers/osgeo-desktop.png|' \
+       -e "s|^Wallpaper=.*|Wallpaper=/usr/share/lubuntu/wallpapers/$WALLPAPER_NAME|" \
        -e 's|^BgColor=.*|BgColor=#ffffff|' \
        -e 's|^FgColor=.*|FgColor=#000000|' \
        -e 's|^ShadowColor=.*|ShadowColor=#dfdfdf|' \
@@ -69,13 +81,21 @@ sed -i -e 's|^DesktopShortcuts=.*|DesktopShortcuts=Home, Trash|' \
 
 # echo "desktop_folder_new_win=1" >> /etc/xdg/pcmanfm/lubuntu/pcmanfm.conf
 
-# New way to set login screen background as of 20.04 that uses sddm instead of lightdm
-sed -i -e 's|^background=.*|background=/usr/share/lubuntu/wallpapers/osgeo-desktop-transparent.png|' \
-   /usr/share/sddm/themes/lubuntu/theme.conf
+# SDDM login background: prefer edition wallpaper, else transparent OSGeo image
+if [ -f /usr/share/lubuntu/wallpapers/"$WALLPAPER_NAME" ] ; then
+   sed -i -e "s|^background=.*|background=/usr/share/lubuntu/wallpapers/$WALLPAPER_NAME|" \
+      /usr/share/sddm/themes/lubuntu/theme.conf
+else
+   sed -i -e 's|^background=.*|background=/usr/share/lubuntu/wallpapers/osgeo-desktop-transparent.png|' \
+      /usr/share/sddm/themes/lubuntu/theme.conf
+fi
 
-# Set the installer desktop icon to OSGeoLive
-sed -i -e 's|Lubuntu|OSGeoLive|' \
+# Set the installer desktop icon to the edition name
+EDITION_LABEL="${EDITION_NAME:-OSGeoLive}"
+sed -i -e "s|Lubuntu|$EDITION_LABEL|" \
        -e 's|24.04 LTS|17.0|' \
+       -e 's|26.04 LTS|17.0|' \
+       -e 's|26.04|17.0|' \
    /usr/share/applications/lubuntu-calamares.desktop
 
 #Add the launchhelp script which allows other apps to provide sudo

@@ -84,7 +84,13 @@ fi
 
 #Selecting iso name and build name
 if [ "$BUILD_MODE" = "release" ]; then
-    ISO_NAME="$PACKAGE_NAME-$VERSION-$ARCH"
+    # shellcheck disable=SC1090
+    [ -f "$GIT_DIR"/fossgis/edition.conf ] && . "$GIT_DIR"/fossgis/edition.conf
+    if [ -n "${EDITION_ISO_SUFFIX:-}" ] ; then
+       ISO_NAME="$PACKAGE_NAME-$VERSION-$EDITION_ISO_SUFFIX-$ARCH"
+    else
+       ISO_NAME="$PACKAGE_NAME-$VERSION-$ARCH"
+    fi
     VERSION_MODE="$VERSION"
 else
     ISO_NAME="$PACKAGE_NAME-nightly-build$GIT_BUILD-$ARCH-$REVISION-$GIT_BRANCH"
