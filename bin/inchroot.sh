@@ -206,7 +206,7 @@ fossgis_run ./install_pycsw.sh
 fossgis_run ./install_pywps.sh
 fossgis_run ./install_pygeoapi.sh
 # ./install_eoxserver.sh # install_vm_only
-fossgis_run ./install_istsos.sh
+# ./install_istsos.sh  # no Resolute deb; PyPI only yanked 3.0.0b1 (build138)
 # ./install_actinia.sh # install_vm_only
 fossgis_run ./install_datacube.sh
 
