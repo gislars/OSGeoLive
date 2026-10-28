@@ -408,9 +408,16 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Dateien:** `bin/install_otb.sh`
 - **Was:** `libotb`/`monteverdi` fehlen; OTB 9.1.1 von
   `orfeo-toolbox.org/packages/OTB-9.1.1-Linux.tar.gz` nach
-  `/usr/local/lib/OTB-9.1.1`.
-- **Einordnung:** upstream-tauglich
-- **Merge:** `build/resolute-app-ports`
+  `/usr/local/lib/OTB-9.1.1`. Postinstall (`tools/post_install.sh`: cmake-Pfad,
+  `sanitize_rpath`) laeuft einmal als root; `/etc/profile.d/otb.sh` setzt nur
+  Env und sourct nicht `otbenv.profile` (sonst wuerde `su - user` in
+  `install_node.sh` den Erststart als user ausloesen, build126: 921x
+  Permission denied). Marker `tools/install_done.txt` verhindert erneute
+  Erstinitialisierung. Upstream liefert kein
+  `OTB-9.1-GDAL-bindings-py314.tar.gz` (HTTP 404); Python-OTB bleibt damit
+  unter Resolute unvollstaendig, CLI/Mapla/Monteverdi bleiben nutzbar.
+- **Einordnung:** upstream-tauglich (Binary + root-Postinstall); py314-Luecke temporaer
+- **Merge:** `build/resolute-app-ports`, `fix/otb-root-postinstall`
 
 ### OSSIM und PDAL vorerst ausgelassen
 
