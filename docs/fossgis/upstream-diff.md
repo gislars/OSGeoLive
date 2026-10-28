@@ -368,6 +368,17 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   Pinning FOSSGIS-spezifisch
 - **Merge:** `build/gis-stack`, Nacharbeit `fix/gis-stack-verify`
 
+### check_build_log erkennt Content-Failures aus build126
+
+- **Dateien:** `fossgis/tools/check_build_log.sh`
+- **Was:** Zusaetzlich zu Host-Schaeden: `E: Unable to locate package`,
+  `E: Package ... has no installation candidate`,
+  `patchelf: open: Permission denied`, `First time launching OTB...`,
+  `Can not find GDAL bindings at`, `ERROR: install step failed`.
+  Damit zaehlt ein Log wie build126 nicht mehr als gruen trotz `exit=0`.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `fix/check-log-content-failures`
+
 ### builder_vm findet Build-Logs mit YYYYMMDD-HHMMSS
 
 - **Dateien:** `fossgis/tools/builder_vm.sh`, `bin/build_chroot.sh`
