@@ -420,6 +420,16 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** temporär
 - **Merge:** `build/resolute-app-ports`
 
+## Build-Dokumentation
+
+### README fuer FOSSGIS-Build und Jahres-Checkliste
+
+- **Dateien:** `docs/fossgis/README.md`
+- **Was:** Voraussetzungen, `local.env`, `prepare_data.sh`, Artwork, Branch-Workflow
+  und Checkliste fuer das Folgejahr.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `docs/fossgis-build`
+
 ## Branding FOSSGIS 2027
 
 ### Texte, ISO-Suffix, Wallpaper-Fallback, Workshop-Icon

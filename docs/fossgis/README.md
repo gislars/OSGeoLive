@@ -31,7 +31,13 @@ Am Ende kopiert `fetch` ISO und Log nach `build/` und `build/logs/` und prüft m
 `host_guard.sh`, dass der Host unverändert ist. Grenzen über `FOSSGIS_VM_CPUS`,
 `FOSSGIS_VM_RAM`, `FOSSGIS_VM_DISK`. `destroy` löscht die VM vollständig.
 
-> Gerüst, wird mit dem Branch `docs/fossgis-build` vervollständigt.
+## Voraussetzungen
+
+- Host mit KVM/QEMU, genug freiem Speicher (ISO und Cache: mehrere 10 GB)
+- `fossgis/tools/builder_vm.sh create` einmalig ausgefuehrt
+- Vor dem ersten Build mit Heidelberg-Daten: `fossgis/prepare_data.sh`
+  (benoetigt `osmium-tool`, `gdal-bin`, `wget`, Netz)
+- Kein `sudo ./bin/build_chroot.sh` auf dem Host (siehe build-safety.md)
 
 ## Verzeichnisse
 
@@ -66,6 +72,40 @@ mkdir -p local
 cp fossgis/local.env.example local/local.env
 chmod 600 local/local.env
 ```
+
+Variablen in `local/local.env` (siehe `fossgis/local.env.example`):
+
+| Variable | Wirkung |
+|---|---|
+| `FOSSGIS_CACHE` | `"0"` schaltet den Download-Cache ab |
+| `FOSSGIS_CACHE_DIR` | anderes Cache-Verzeichnis (Host-Pfad; in der VM gilt `local/cache`) |
+| `FOSSGIS_CACHE_REFRESH` | `"1"` laedt Downloads neu und ersetzt den Cache |
+| `WIFI_SSID` / `WIFI_PSK` / `WIFI_KEY_MGMT` | optionales WLAN-Profil (siehe unten) |
+| `WORKSHOP_URL` | URL fuer das Desktop-Icon „Workshop Downloads“ |
+
+Jahreswerte stehen in `fossgis/edition.conf` (`EDITION_*`, `MAP_*`, `OSM_*`,
+`LOCALE`, `TIMEZONE`, `WALLPAPER`, `EDITION_ISO_SUFFIX`).
+
+## OSM-Daten vorbereiten
+
+```sh
+fossgis/prepare_data.sh
+```
+
+Laedt das Geofabrik-PBF aus `OSM_SOURCE_PBF_URL`, stanzt die Relation
+`OSM_RELATION` aus und schreibt nach `local/data/osm/`:
+
+- `<MAP_CITY>.osm.pbf` (ins Image als `feature_city.osm.pbf`)
+- `<MAP_CITY>.osm` (nur fuer osm2pgrouting im Build, nicht im ISO)
+- `<MAP_CITY>.stamp` (SHA-256, Build-Pruefung)
+
+Ohne passende Dateien bricht `build_chroot.sh` ab. Das Skript ist idempotent.
+
+## Artwork
+
+Hintergrundbild und optionale Logos liegen in `local/artwork/` (nicht im Repo).
+Dateiname laut `WALLPAPER` in `edition.conf` (Standard `fossgis-desktop.png`).
+Fehlt die Datei, nimmt `install_desktop.sh` `desktop-conf/osgeo-desktop.png`.
 
 ## Download-Cache
 
@@ -122,3 +162,28 @@ setdown.sh
 Für einen Vollbuild wird die Datei wieder entfernt oder umbenannt. Startet ein
 Skript der Liste einen Dienst (zum Beispiel `service_postgresql.sh`), muss die Liste
 mit `setdown.sh` enden, das die Dienste wieder stoppt.
+
+## Branch-Workflow
+
+Jedes Thema bekommt einen eigenen Branch. Merges nach `master` laufen mit
+`git merge --no-ff` und dem Trailer `Tested:` (Teilbuild-Nummer oder
+`n/a` bei reiner Doku). Vor dem Merge: `fossgis/tools/check_clean.sh HEAD`.
+Push nur nach ausdruecklicher Freigabe; Ziel ist ausschliesslich
+`gislars/OSGeoLive`, nie `OSGeo/OSGeoLive`.
+
+## Checkliste fuer das naechste Jahr
+
+1. `fossgis/edition.conf`: Name, Daten, Ort, `OSM_RELATION`, PBF-URL, Kartenmitte
+2. `fossgis/prepare_data.sh` neu laufen lassen; Stamp und Groessen pruefen
+3. Artwork nach `local/artwork/` legen
+4. `bin/tools/list_pinned_versions.sh` und ggf. Versionen anheben
+5. Neues Lubuntu-Point-Release / Basis pruefen
+6. deegree 3.7 (Java 21+, Tomcat 11) und andere Major-Upgrades abwaegen
+7. Offline-Doku (`osgeolive-doc/`) und `DOCS_COMMIT` aktualisieren
+8. Vollbuild in der VM, `host_guard`, QEMU-Boot, `check_gis_stack.sh`
+
+## Verwandte Dokumente
+
+- [upstream-diff.md](upstream-diff.md): Abweichungen vom Upstream
+- [build-safety.md](build-safety.md): Host-Schutz und Vorfaelle
+- [adr/](adr/README.md): Architekturentscheidungen
