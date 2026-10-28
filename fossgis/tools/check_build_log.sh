@@ -23,9 +23,10 @@ fi
 
 # Patterns from docs/fossgis/build-safety.md and the 27.10.2026 incidents.
 # Keep this list short and specific; do not match ordinary apt "busy" noise.
-# Keep this list specific. Transient apt DNS errors and pip noise appear in
-# otherwise green logs; the inchroot abort on failed steps covers those.
-PATTERN='target is busy|Device or resource busy|cannot remove .+edit/|changed size while reading filesystem|Failed to read file edit/|ERROR: partial build step failed|ERROR: QGIS package|ERROR: apt candidate for qgis|ERROR: installed qgis|ERROR: expected GDAL|ERROR: expected GRASS|ERROR: expected QGIS|ERROR: gdal-config|ERROR: processes still run|ERROR: still mounted'
+# Content failures from build126 (exit=0 but broken apps / missing debs / OTB):
+# Unable to locate package, firefox-locale candidate, OTB first-launch as user,
+# missing upstream GDAL py bindings message from otbenv post_install.
+PATTERN='target is busy|Device or resource busy|cannot remove .+edit/|changed size while reading filesystem|Failed to read file edit/|ERROR: partial build step failed|ERROR: install step failed|ERROR: QGIS package|ERROR: apt candidate for qgis|ERROR: installed qgis|ERROR: expected GDAL|ERROR: expected GRASS|ERROR: expected QGIS|ERROR: gdal-config|ERROR: processes still run|ERROR: still mounted|E: Unable to locate package|E: Package .+ has no installation candidate|patchelf: open: Permission denied|First time launching OTB after installation|Can not find GDAL bindings at'
 
 HITS=`grep -E -n -e "$PATTERN" "$LOG" || true`
 if [ -z "$HITS" ] ; then
