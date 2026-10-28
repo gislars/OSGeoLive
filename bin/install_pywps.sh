@@ -82,8 +82,30 @@ chown "$USER_NAME:$USER_NAME" "$USER_HOME/Desktop/pywps.desktop"
 
 echo 'enabling Apache wsgi module'
 a2enmod wsgi
-echo 'enabling Apache configuration'
-a2enconf pywps-wsgi
+
+# Deb pywps-wsgi runs in Apache embedded mode. Give it an own daemon so a
+# foreign python-home (e.g. osgeolive-venv for pycsw) cannot steal sys.path.
+echo 'Installing OSGeoLive pywps WSGI daemon config ...'
+cat > /etc/apache2/conf-available/osgeolive-pywps.conf << EOF
+# System Deb python3-pywps in an isolated daemon (no python-home).
+WSGIDaemonProcess osgeolive-pywps \\
+    user=www-data \\
+    group=www-data \\
+    processes=1 \\
+    threads=5 \\
+    display-name=%{GROUP}
+
+WSGIScriptAlias /pywps/wps.py /usr/share/pywps/wps.py \\
+    process-group=osgeolive-pywps application-group=osgeolive-pywps
+
+<Directory "/usr/share/pywps">
+  AllowOverride None
+  Options -MultiViews +SymLinksIfOwnerMatch
+  Require all granted
+</Directory>
+EOF
+a2disconf pywps-wsgi >/dev/null 2>&1 || true
+a2enconf osgeolive-pywps
 
 ####
 ./diskspace_probe.sh "`basename $0`" end
