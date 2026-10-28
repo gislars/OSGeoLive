@@ -468,9 +468,26 @@ if [ -f "$FOSSGIS_TMP"/local.env ] ; then
 fi
 
 # OSM extracts from fossgis/prepare_data.sh (PBF + XML + stamp)
+# Offline docs from fossgis/build_docs.sh
 if [ -f "$GIT_DIR"/fossgis/edition.conf ] ; then
    # shellcheck disable=SC1090
    . "$GIT_DIR"/fossgis/edition.conf
+fi
+if [ -n "${DOCS_COMMIT:-}" ] ; then
+   DOCS_HTML="$FOSSGIS_TMP/data/docs/html"
+   DOCS_STAMP="$FOSSGIS_TMP/data/docs/COMMIT"
+   if [ ! -d "$DOCS_HTML" ] || [ ! -f "$DOCS_STAMP" ] ; then
+      echo "ERROR: offline docs missing under local/data/docs/" >&2
+      echo "Run: fossgis/build_docs.sh" >&2
+      exit 1
+   fi
+   GOT_DOCS=`tr -d ' \n' < "$DOCS_STAMP"`
+   if [ "$GOT_DOCS" != "$DOCS_COMMIT" ] ; then
+      echo "ERROR: docs COMMIT $GOT_DOCS does not match DOCS_COMMIT=$DOCS_COMMIT" >&2
+      echo "Run: fossgis/build_docs.sh and update edition.conf" >&2
+      exit 1
+   fi
+   echo "FOSSGIS: offline docs ok ($DOCS_COMMIT)"
 fi
 if [ -n "${MAP_CITY:-}" ] && [ -n "${OSM_RELATION:-}" ] ; then
    OSM_DIR="$FOSSGIS_TMP/data/osm"
