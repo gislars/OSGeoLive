@@ -766,13 +766,26 @@ echo "======================================"
 # shellcheck disable=SC1090
 . "$GIT_DIR"/fossgis/edition.conf
 CASPER_LOCALE_ARGS="locale=${LOCALE:-de_DE.UTF-8} keyboard-configuration/layoutcode=${KEYMAP:-de} timezone=${TIMEZONE:-Europe/Berlin}"
+# Lubuntu 26.04 grub lines are "linux /casper/vmlinuz ..." without boot=casper.
+# Match those; keep boot=casper for older layouts. Only append if not already set.
 for GRUB_CFG in extract-cd/boot/grub/grub.cfg extract-cd/EFI/boot/grub.cfg ; do
    if [ -f "$GRUB_CFG" ] ; then
-      # Append once per linux line that already has boot=casper
-      if ! grep -q 'keyboard-configuration/layoutcode=' "$GRUB_CFG" ; then
-         sed -i -e "/boot=casper/ s|\$| ${CASPER_LOCALE_ARGS}|" "$GRUB_CFG"
-         echo "FOSSGIS: casper locale args in $GRUB_CFG"
+      if grep -q 'keyboard-configuration/layoutcode=' "$GRUB_CFG" ; then
+         continue
       fi
+      if grep -qE 'linux[^[:space:]]*[[:space:]].*/casper/vmlinuz' "$GRUB_CFG" ; then
+         sed -i -e "/linux[^[:space:]]*[[:space:]].*\\/casper\\/vmlinuz/ s|\$| ${CASPER_LOCALE_ARGS}|" "$GRUB_CFG"
+      elif grep -q 'boot=casper' "$GRUB_CFG" ; then
+         sed -i -e "/boot=casper/ s|\$| ${CASPER_LOCALE_ARGS}|" "$GRUB_CFG"
+      else
+         echo "ERROR: no casper linux lines in $GRUB_CFG to attach locale args." >&2
+         exit 1
+      fi
+      if ! grep -q 'keyboard-configuration/layoutcode=' "$GRUB_CFG" ; then
+         echo "ERROR: failed to add casper locale args to $GRUB_CFG" >&2
+         exit 1
+      fi
+      echo "FOSSGIS: casper locale args in $GRUB_CFG"
    fi
 done
 
