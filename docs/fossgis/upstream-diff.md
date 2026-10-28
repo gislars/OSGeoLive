@@ -345,7 +345,8 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   `bin/check_gis_stack.sh`, `bin/inchroot.sh`, `bin/base_python.sh`,
   `sources.list.d/qgis.sources`, `app-conf/apt/qgis-pin.pref`,
   `app-conf/apt/keyrings/qgis-archive-keyring.gpg`,
-  `fossgis/tools/build_qgis_plugins_zip.py`
+  `fossgis/tools/build_qgis_plugins_zip.py`,
+  `fossgis/tools/update_qgis_plugins.py`, `fossgis/tools/qgis_plugins_pins.json`
 - **Was:** QGIS 4.2 kommt von `qgis.org/debian resolute` (Keyring und Pinning gegen
   Ubuntu-Universe mit QGIS 3.x; Pin nach `o=QGIS project`, nicht nach Hostname,
   weil Redirects die Origin-Zeile brechen). Installiert werden `qgis`,
@@ -357,13 +358,21 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   8.4, QGIS nicht 4.2 oder mehr als eine `libgdal*` in den Abhängigkeiten
   vorkommt, und prüft `ldd` am GRASS-Plugin; Versionen kommen robust aus
   Paketmetadaten bzw. `grass --config version` (nicht nur aus Banner-Zeilen).
-  Plugin-ZIP für QGIS 4 liegt in `local/data/qgis/` (nicht im Repo).
+  Plugin-ZIP für QGIS 4 liegt in `local/data/qgis/` (nicht im Repo). Gepinnte
+  Plugin-Versionen stehen in `qgis_plugins_pins.json` (`last_check` ISO-Zeit);
+  `update_qgis_plugins.py` holt einmal `plugins.xml?qgis=4.2`, cached unter
+  `local/cache/qgis-plugins/` (TTL 24 h, `--force` ignoriert TTL), schreibt
+  Pins; `build_qgis_plugins_zip.py` baut das ZIP. Vor jedem
+  `builder_vm.sh build` ruft `ensure_qgis_plugins.sh` Update und bei Bedarf
+  ZIP-Neubau auf dem Host auf; unveraenderte Pins nutzen das bestehende ZIP.
 - **Warum:** Ein einheitlicher Stack ohne UbuntuGIS-PPA; QGIS 4 ist gegen
   `libgdal38` und `grass842` gebaut. Falsch-grüne Teilbuilds und flaky DNS
-  im Chroot dürfen den Stack nicht als fertig melden.
-- **Einordnung:** upstream-tauglich (QGIS-Quelle und Prüfskript); Plugin-ZIP und
-  Pinning FOSSGIS-spezifisch
-- **Merge:** `build/gis-stack`, Nacharbeit `fix/gis-stack-verify`
+  im Chroot dürfen den Stack nicht als fertig melden. Plugin-Pins schonend
+  gegen Upstream halten, ohne Dauerfeuer einzelner Plugin-Seiten.
+- **Einordnung:** upstream-tauglich (QGIS-Quelle und Prüfskript); Plugin-ZIP,
+  Pinning und Updater FOSSGIS-spezifisch
+- **Merge:** `build/gis-stack`, Nacharbeit `fix/gis-stack-verify`,
+  `chore/qgis-plugin-updater`
 
 ### check_build_log erkennt Content-Failures aus build126
 

@@ -3,41 +3,22 @@
 Builds a ZIP archive of QGIS plugins from plugins.qgis.org.
 Layout: usr/share/qgis/python/plugins/<PluginName>/... (standard QGIS plugin path).
 Extract with: unzip -d <target> <output.zip>
+
+Pinned versions live in qgis_plugins_pins.json (update with update_qgis_plugins.py).
 """
 import io
+import json
 import os
 import shutil
 import tempfile
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
-# Plugin name and version string (as used on plugins.qgis.org).
-PLUGINS_CURRENT = {
-    "DigitizingTools": "1.5.3",
-    "DirectionalSlope": "1.3.2",
-    "GroupStats": "2.2.7",
-    "OSMDownloader": "1.0.4",
-    "Qgis2threejs": "3.3",
-    "QuickOSM": "2.5.0",
-    "SpreadsheetLayers": "2.1.2",
-    "clipper": "1.2",
-    "contour": "2.0.15",
-    "lrs": "1.2.5",
-    "Mergin": "2026.1.2",
-    "mmqgis": "2026.6.12",
-    "pgRoutingLayer": "4.0.0",
-    "plaingeometryeditor": "3.0.0",
-    "processing_r": "4.1.0",
-    "profiletool": "4.3.3",
-    "qgis2web": "3.32.0",
-    "quick_map_services": "1.1.0",
-    "timemanager": "3.7",
-    "valuetool": "3.1.0",
-    # plugins.qgis.org uses a leading "v" for this plugin's versions
-    "qfieldsync": "v4.23.2",
-}
+TOOLS_DIR = Path(__file__).resolve().parent
+PINS_FILE = TOOLS_DIR / "qgis_plugins_pins.json"
 
 # Output under local/ (not committed); path is resolved from the repo root.
 OUTPUT_REL = Path("local/data/qgis")
@@ -54,6 +35,15 @@ PLUGIN_DOWNLOAD_URL = "https://plugins.qgis.org/plugins/{plugin_name}/version/{v
 
 # Request timeout in seconds for plugin downloads.
 DOWNLOAD_TIMEOUT = 60
+
+
+def load_plugins() -> Dict[str, str]:
+    """Load plugin name -> version pins from qgis_plugins_pins.json."""
+    data = json.loads(PINS_FILE.read_text(encoding="utf-8"))
+    plugins = data.get("plugins")
+    if not isinstance(plugins, dict) or not plugins:
+        raise SystemExit(f"No plugins in {PINS_FILE}")
+    return {str(k): str(v) for k, v in plugins.items()}
 
 
 def download_plugin(plugin_name: str, version: str) -> bytes:
@@ -99,6 +89,7 @@ def supports_qgis4(plugin_dir: Path) -> bool:
 
 def main() -> None:
     """Download each plugin, skip those incompatible with QGIS 4, write local ZIP."""
+    plugins = load_plugins()
     workdir = tempfile.mkdtemp(prefix="qgis_plugins_")
     target_base = os.path.join(workdir, BASE_PATH)
     os.makedirs(target_base, exist_ok=True)
@@ -106,8 +97,8 @@ def main() -> None:
     skipped = 0
 
     try:
-        for i, (plugin_name, version) in enumerate(PLUGINS_CURRENT.items(), 1):
-            print(f"[{i}/{len(PLUGINS_CURRENT)}] {plugin_name} {version} ... ", end="", flush=True)
+        for i, (plugin_name, version) in enumerate(plugins.items(), 1):
+            print(f"[{i}/{len(plugins)}] {plugin_name} {version} ... ", end="", flush=True)
             try:
                 data = download_plugin(plugin_name, version)
             except (urllib.error.URLError, OSError) as e:
