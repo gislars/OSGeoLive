@@ -420,6 +420,19 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** temporär
 - **Merge:** `build/resolute-app-ports`
 
+## Offline-Doku
+
+### Vorgebaute Sphinx-HTML statt PPA
+
+- **Dateien:** `fossgis/build_docs.sh`, `bin/install_docs.sh`, `bin/build_chroot.sh`,
+  `fossgis/edition.conf` (`DOCS_COMMIT`)
+- **Was:** `osgeolive-doc/` (Fork) wird auf dem Host in `ubuntu:24.04` nach
+  `local/data/docs/html` gebaut. Der ISO-Build verlangt passende `COMMIT` und
+  kopiert die HTML-Dateien; kein stiller Rueckfall auf das PPA, wenn
+  `DOCS_COMMIT` gesetzt ist. Desktop-Hilfe startet auf `/osgeolive/de/`.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** Offline-Doku (osgeolive-doc + Haupt-Repo)
+
 ## Build-Dokumentation
 
 ### README fuer FOSSGIS-Build und Jahres-Checkliste

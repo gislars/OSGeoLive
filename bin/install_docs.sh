@@ -38,16 +38,28 @@ DATA_FOLDER="/usr/local/share/data"
 echo "Running install_docs.sh with the following settings:"
 echo "BUILD_MODE: $BUILD_MODE"
 
-# Install from daily repository only in nightly mode
-if [ "$BUILD_MODE" = "nightly" ] ; then
-   add-apt-repository --yes ppa:osgeolive/docs
-   apt-get update
+# FOSSGIS: prefer prebuilt docs from prepare/build_docs.sh
+FOSSGIS_DOCS="${FOSSGIS_DIR:-/usr/local/share/gisvm/fossgis-local}/data/docs/html"
+apt-get install --assume-yes javascript-common
+
+if [ -d "$FOSSGIS_DOCS" ] && { [ -f "$FOSSGIS_DOCS/en/index.html" ] || [ -f "$FOSSGIS_DOCS/index.html" ] ; } ; then
+   echo "FOSSGIS: installing offline docs from $FOSSGIS_DOCS"
+   mkdir -p /usr/local/share/osgeolive-docs
+   cp -a "$FOSSGIS_DOCS"/. /usr/local/share/osgeolive-docs/
+   ln -sfn /usr/local/share/osgeolive-docs "$DEST/osgeolive"
+   # German start page when present
+   if [ -f /usr/local/share/osgeolive-docs/de/index.html ] ; then
+      ln -sfn osgeolive/de/index.html "$DEST/index.html" 2>/dev/null || true
+   fi
+else
+   # Upstream fallback (PPA), only when FOSSGIS docs are missing
+   if [ "$BUILD_MODE" = "nightly" ] ; then
+      add-apt-repository --yes ppa:osgeolive/docs
+      apt-get update
+   fi
+   apt-get install --assume-yes osgeolive-docs
+   ln -s /usr/share/doc/osgeolive-docs/html $DEST/osgeolive
 fi
-
-apt-get install --assume-yes osgeolive-docs javascript-common
-#fonts-noto-cjk
-
-ln -s /usr/share/doc/osgeolive-docs/html $DEST/osgeolive
 
 # Create symbolic links to project specific documentation
 cd "$DEST"
@@ -208,7 +220,7 @@ Encoding=UTF-8
 Name=Help
 Comment=OSGeoLive Help
 Categories=Application;Education;Geography;
-Exec=firefox http://localhost/osgeolive/
+Exec=firefox http://localhost/osgeolive/de/
 Icon=/usr/local/share/icons/help-browser.png
 Terminal=false
 StartupNotify=false

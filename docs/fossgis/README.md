@@ -86,6 +86,17 @@ Variablen in `local/local.env` (siehe `fossgis/local.env.example`):
 Jahreswerte stehen in `fossgis/edition.conf` (`EDITION_*`, `MAP_*`, `OSM_*`,
 `LOCALE`, `TIMEZONE`, `WALLPAPER`, `EDITION_ISO_SUFFIX`).
 
+## Offline-Doku
+
+```sh
+git clone git@github.com:gislars/OSGeoLive-doc.git osgeolive-doc
+fossgis/build_docs.sh
+```
+
+Baut `de` und `en` in `local/data/docs/html` und schreibt `local/data/docs/COMMIT`.
+`DOCS_COMMIT` in `edition.conf` muss denselben Hash haben. Ohne passende Dateien
+bricht der Build ab (kein stiller Rueckfall auf das PPA).
+
 ## OSM-Daten vorbereiten
 
 ```sh
