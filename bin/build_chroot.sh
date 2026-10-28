@@ -119,6 +119,8 @@ if [ -z "$FOSSGIS_BUILD_LOG" ] ; then
         echo "# build_dir=$BUILD_DIR"
         echo "# start=$LOG_START"
     } > "$FOSSGIS_BUILD_LOG"
+    # Symlink early so builder_vm follow/status work before the build finishes.
+    ln -sfn "`basename "$FOSSGIS_BUILD_LOG"`" "$LOG_DIR/latest.log"
     echo "Build log: $FOSSGIS_BUILD_LOG"
 
     # Ctrl-C stops the build, but the log still gets its end lines and index entry
