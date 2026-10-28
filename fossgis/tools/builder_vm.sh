@@ -321,7 +321,7 @@ vm_build_log() {
    vm_ssh "if [ -e $VM_BUILD/logs/latest.log ] ; then
          readlink -f $VM_BUILD/logs/latest.log
       else
-         ls -1t $VM_BUILD/logs/20*-*-*-osgeolive-*.log 2>/dev/null | head -n 1
+         ls -1t $VM_BUILD/logs/20??????-??????-osgeolive-*.log 2>/dev/null | head -n 1
       fi"
 }
 
@@ -342,7 +342,7 @@ cmd_status() {
       if [ -e $VM_BUILD/logs/latest.log ] ; then
          LOG=\$(readlink -f $VM_BUILD/logs/latest.log)
       else
-         LOG=\$(ls -1t $VM_BUILD/logs/20*-*-*-osgeolive-*.log 2>/dev/null | head -n 1)
+         LOG=\$(ls -1t $VM_BUILD/logs/20??????-??????-osgeolive-*.log 2>/dev/null | head -n 1)
          echo \"note: logs/latest.log missing, using newest dated log\"
       fi
       if [ -n \"\$LOG\" ] && [ -f \"\$LOG\" ] ; then
@@ -383,7 +383,7 @@ cmd_follow() {
          if [ -e $VM_BUILD/logs/latest.log ] ; then
             LOG=\$(readlink -f $VM_BUILD/logs/latest.log)
          else
-            LOG=\$(ls -1t $VM_BUILD/logs/20*-*-*-osgeolive-*.log 2>/dev/null | head -n 1)
+            LOG=\$(ls -1t $VM_BUILD/logs/20??????-??????-osgeolive-*.log 2>/dev/null | head -n 1)
          fi
          [ -n \"\$LOG\" ] && [ -f \"\$LOG\" ] && break
          sleep 2

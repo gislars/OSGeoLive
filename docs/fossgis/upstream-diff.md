@@ -368,6 +368,16 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   Pinning FOSSGIS-spezifisch
 - **Merge:** `build/gis-stack`, Nacharbeit `fix/gis-stack-verify`
 
+### builder_vm findet Build-Logs mit YYYYMMDD-HHMMSS
+
+- **Dateien:** `fossgis/tools/builder_vm.sh`, `bin/build_chroot.sh`
+- **Was:** Fallback-Glob war `20*-*-*-osgeolive-*.log` (drei Segmente) und
+  matchte nicht `20261028-010032-osgeolive-...` (build126 Host:
+  `no build log in the VM`). Neu: `20??????-??????-osgeolive-*.log`.
+  `build_chroot.sh` setzt `logs/latest.log` sofort nach Anlegen der Logdatei.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `fix/builder-vm-log-glob`
+
 ### GeoServer rm -f fuer fehlende JAR-Globs; pgAdmin Status hart
 
 - **Dateien:** `bin/install_geoserver.sh`, `bin/install_pgadmin.sh`
