@@ -516,11 +516,23 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   `/opt/osgeolive-venv` mit `pycsw==2.6.2`, `SQLAlchemy>=1.4,<2`,
   `legacy-cgi`, `setuptools>=65,<82` (`pkg_resources`; 82+ entfernt das Modul,
   build155);
-  Apache `WSGIDaemonProcess` mit `python-home` und eigener WSGI-/Config unter
-  `app-conf/pycsw/`. Deb-Pakete bleiben fuer Demo-DB und Docs. Deb-`pycsw-wsgi`
-  wird per `a2disconf` zugunsten von `osgeolive-pycsw` abgeschaltet.
+  Apache `WSGIDaemonProcess` mit `python-home` und `application-group=%{GLOBAL}`
+  (noetig fuer numpy/shapely in der venv) unter `app-conf/pycsw/`. Deb-Pakete
+  bleiben fuer Demo-DB und Docs. Deb-`pycsw-wsgi` wird per `a2disconf`
+  zugunsten von `osgeolive-pycsw` abgeschaltet. Andere WSGI-Apps brauchen
+  deshalb einen eigenen Daemon (siehe pywps).
 - **Einordnung:** FOSSGIS-Workaround bis Deb/Upstream SA2 + cgi liefern
 - **Merge:** lokal
+
+### pywps eigener WSGI-Daemon (ohne venv)
+
+- **Dateien:** `bin/install_pywps.sh`
+- **Was:** Deb-`pywps-wsgi` (embedded) scheitert, sobald pycsw die venv als
+  `%{GLOBAL}` setzt (`ModuleNotFoundError: No module named 'pywps'`, Live
+  build159). Ersatz: `osgeolive-pywps.conf` mit eigenem `WSGIDaemonProcess`
+  ohne `python-home`, Deb-`pywps-wsgi` aus.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `fix/pywps-wsgi-daemon`
 
 ### Firefox Deutsch ohne firefox-locale-de
 
