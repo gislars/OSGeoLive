@@ -368,6 +368,16 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   Pinning FOSSGIS-spezifisch
 - **Merge:** `build/gis-stack`, Nacharbeit `fix/gis-stack-verify`
 
+### Vollbuild bricht bei Install-Fehlern ab
+
+- **Dateien:** `bin/inchroot.sh`
+- **Was:** Der Hauptpfad (ohne `inchroot.list`) ruft jeden Install-Schritt ueber
+  `fossgis_run` auf und beendet den Build bei Exit ungleich 0. Vorher liefen
+  Skripte ohne `set -e` nach fehlgeschlagenem `apt-get` weiter und meldeten
+  trotzdem `Finished` (build126: fehlende Pakete, OTB).
+- **Einordnung:** upstream-tauglich
+- **Merge:** `fix/inchroot-fail-hard`
+
 ## Entfernt oder ersetzt (Ubuntu 26.04)
 
 ### Willkommensdialog: gxmessage durch zenity
