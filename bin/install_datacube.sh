@@ -25,6 +25,12 @@ DDIR="/usr/local/share/data/odc"
 . "$BUILD_DIR/tools/osgeolive_venv.sh"
 
 echo "Installing datacube/odc into $OSGEOLIVE_VENV (no Resolute debs)"
+# psycopg2-binary first: datacube[postgres] pulls source psycopg2 and needs gcc
+# (build142: No such file or directory: x86_64-linux-gnu-gcc).
+if ! osgeolive_venv_pip psycopg2-binary ; then
+   echo "ERROR: pip install psycopg2-binary failed" >&2
+   exit 1
+fi
 if ! osgeolive_venv_pip datacube odc-geo odc-stac ; then
    echo "ERROR: pip install datacube/odc-* failed" >&2
    exit 1
@@ -87,8 +93,8 @@ storage:
 measurements:
   - name: imagery
     dtype: uint8
-    nodata: -32768.0
-    units: "metre"
+    nodata: 0
+    units: "1"
 
 EOF
 
