@@ -319,12 +319,14 @@ cmd_build() {
    cmd_follow
 }
 
-# Prefer logs/latest.log; if the symlink is missing (setdown/race), take the
-# newest dated build log so follow/fetch/status still work.
+# Prefer logs/latest.log. Only fall back to the newest dated log when no
+# fossgis-build unit is active (finished builds / fetch). While a build is
+# running, never pick an older dated log: build start removes latest.log and
+# build_chroot recreates it for the current run.
 vm_build_log() {
    vm_ssh "if [ -e $VM_BUILD/logs/latest.log ] ; then
          readlink -f $VM_BUILD/logs/latest.log
-      else
+      elif ! systemctl is-active --quiet fossgis-build 2>/dev/null ; then
          ls -1t $VM_BUILD/logs/20??????-??????-osgeolive-*.log 2>/dev/null | head -n 1
       fi"
 }
@@ -345,9 +347,9 @@ cmd_status() {
       fi
       if [ -e $VM_BUILD/logs/latest.log ] ; then
          LOG=\$(readlink -f $VM_BUILD/logs/latest.log)
-      else
+      elif [ \"\$STATE\" != active ] ; then
          LOG=\$(ls -1t $VM_BUILD/logs/20??????-??????-osgeolive-*.log 2>/dev/null | head -n 1)
-         echo \"note: logs/latest.log missing, using newest dated log\"
+         [ -n \"\$LOG\" ] && echo \"note: logs/latest.log missing, using newest dated log\"
       fi
       if [ -n \"\$LOG\" ] && [ -f \"\$LOG\" ] ; then
          S1=\$(stat -c %s \"\$LOG\")
@@ -374,28 +376,37 @@ cmd_status() {
       else
          echo \"log=none\"
          if [ \"\$STATE\" = active ] ; then
-            echo \"warning: unit active but no build log yet\"
+            echo \"warning: unit active but logs/latest.log not ready yet\"
          fi
       fi"
 }
 
 cmd_follow() {
    vm_running || die "the VM is not running."
-   # wait for a log (symlink or newest dated file), then follow until the unit ends
+   # While fossgis-build is active, wait for logs/latest.log only (created by
+   # build_chroot for this run after build start removes the old symlink).
+   # Falling back to ls -1t would re-attach to the previous build's log.
    vm_ssh "LOG=\"\"
       for i in \$(seq 90) ; do
          if [ -e $VM_BUILD/logs/latest.log ] ; then
             LOG=\$(readlink -f $VM_BUILD/logs/latest.log)
-         else
+            [ -n \"\$LOG\" ] && [ -f \"\$LOG\" ] && break
+         elif ! systemctl is-active --quiet fossgis-build 2>/dev/null ; then
             LOG=\$(ls -1t $VM_BUILD/logs/20??????-??????-osgeolive-*.log 2>/dev/null | head -n 1)
+            [ -n \"\$LOG\" ] && [ -f \"\$LOG\" ] && break
          fi
-         [ -n \"\$LOG\" ] && [ -f \"\$LOG\" ] && break
          sleep 2
       done
-      [ -n \"\$LOG\" ] && [ -f \"\$LOG\" ] || { echo \"builder_vm: no build log in the VM\" >&2 ; exit 1 ; }
+      [ -n \"\$LOG\" ] && [ -f \"\$LOG\" ] || { echo \"builder_vm: no current build log in the VM\" >&2 ; exit 1 ; }
+      echo \"builder_vm: following \$LOG\"
       PID=\$(systemctl show -p MainPID --value fossgis-build 2>/dev/null)
       if [ -n \"\$PID\" ] && [ \"\$PID\" != 0 ] ; then
-         tail -n +1 -F --pid=\"\$PID\" \"\$LOG\" 2>/dev/null
+         # Follow the symlink path so we stay on the current build's log.
+         if [ -e $VM_BUILD/logs/latest.log ] ; then
+            tail -n +1 -F --pid=\"\$PID\" $VM_BUILD/logs/latest.log 2>/dev/null
+         else
+            tail -n +1 -F --pid=\"\$PID\" \"\$LOG\" 2>/dev/null
+         fi
       else
          cat \"\$LOG\"
       fi"

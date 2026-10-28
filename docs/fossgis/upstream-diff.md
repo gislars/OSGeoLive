@@ -395,6 +395,16 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** FOSSGIS-spezifisch
 - **Merge:** `fix/builder-vm-log-glob`
 
+### builder_vm follow nur aktuelles Log waehrend laufendem Build
+
+- **Dateien:** `fossgis/tools/builder_vm.sh`
+- **Was:** Solange `fossgis-build` aktiv ist, warten `follow`/`status`/`vm_build_log`
+  nur auf `logs/latest.log` und fallen nicht mehr auf `ls -1t` zurueck (sonst
+  haengt follow am vorherigen dated Log, weil Build-Start den Symlink loescht).
+  `tail -F` folgt dem Symlink-Pfad.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `fix/builder-vm-follow-current-log`
+
 ### GeoServer rm -f fuer fehlende JAR-Globs; pgAdmin Status hart
 
 - **Dateien:** `bin/install_geoserver.sh`, `bin/install_pgadmin.sh`
