@@ -45,8 +45,10 @@ echo 'Installing pycsw (Deb data/docs + venv runtime) ...'
 apt-get install --yes pycsw pycsw-doc javascript-common libapache2-mod-wsgi-py3
 
 # Upstream still targets SQLAlchemy 1.4; legacy-cgi replaces stdlib cgi on
-# Python >= 3.13 (PEP 594). Isolate both in the shared Live venv.
+# Python >= 3.13 (PEP 594). pycsw 2.6 imports pkg_resources; setuptools 82+
+# dropped that module, so pin below 82. Isolate the stack in the shared Live venv.
 if ! osgeolive_venv_pip \
+   "setuptools>=65,<82" \
    "SQLAlchemy>=1.4,<2" \
    "legacy-cgi" \
    "pycsw==$PYCSW_PIP_VERSION" ; then
@@ -54,7 +56,7 @@ if ! osgeolive_venv_pip \
    exit 1
 fi
 
-if ! "$OSGEOLIVE_VENV/bin/python" -c "import pycsw, cgi, sqlalchemy; assert sqlalchemy.__version__.startswith('1.')" ; then
+if ! "$OSGEOLIVE_VENV/bin/python" -c "import pkg_resources, pycsw, cgi, sqlalchemy; assert sqlalchemy.__version__.startswith('1.')" ; then
    echo "ERROR: pycsw venv runtime check failed" >&2
    exit 1
 fi
