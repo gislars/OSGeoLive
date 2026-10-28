@@ -449,11 +449,13 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   `bin/install_istsos.sh`, `bin/inchroot.sh`, `bin/tools/osgeolive_venv.sh`
 - **Was:** Unter 26.04 fehlen `python3-datacube`, `python3-odc-*`,
   `python3-ipyleaflet` (build126). Installation per `pip` in
-  `/opt/osgeolive-venv`. `istsos`: kein Deb und auf PyPI nur ge yankte
-  `3.0.0b1` / `No matching distribution` (build138); aus `inchroot.sh`
-  auskommentiert, Skript bleibt fuer spaeter.
+  `/opt/osgeolive-venv` (`datacube[postgres]` inkl. `psycopg2-binary`,
+  build140). `istsos`: kein Deb und auf PyPI nur ge yankte `3.0.0b1` /
+  `No matching distribution` (build138); aus `inchroot.sh` auskommentiert,
+  Skript bleibt fuer spaeter.
 - **Einordnung:** FOSSGIS-spezifisch; istsos temporaer entfernt
-- **Merge:** `fix/venv-missing-pkgs`, `fix/drop-istsos-no-pip`
+- **Merge:** `fix/venv-missing-pkgs`, `fix/drop-istsos-no-pip`,
+  `fix/datacube-psycopg2`
 
 ### Firefox Deutsch ohne firefox-locale-de
 
