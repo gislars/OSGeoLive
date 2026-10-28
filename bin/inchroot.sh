@@ -145,86 +145,96 @@ done < "$PARTIAL_LIST"
 rm -f "$PARTIAL_LIST"
 else
 
-./setup.sh "$BUILD_MODE"
-./install_locale.sh
-./install_wifi.sh
+# Full build: abort on the first failed step (same as partial builds above).
+# Without this, install scripts without set -e still print Finished and the
+# ISO is marked exit=0 (build126: missing packages, OTB Permission denied).
+fossgis_run() {
+    "$@" || {
+        echo "ERROR: install step failed: $*" >&2
+        exit 1
+    }
+}
+
+fossgis_run ./setup.sh "$BUILD_MODE"
+fossgis_run ./install_locale.sh
+fossgis_run ./install_wifi.sh
 
 ### Base installers
-./base_c.sh
-./base_python.sh
-./base_java.sh
+fossgis_run ./base_c.sh
+fossgis_run ./base_python.sh
+fossgis_run ./base_java.sh
 # ./base_language.sh # install_vm_only
 
 ### Service installers
-./service_apache2.sh
-./base_php.sh
-./service_tomcat.sh
-./service_postgresql.sh
+fossgis_run ./service_apache2.sh
+fossgis_run ./base_php.sh
+fossgis_run ./service_tomcat.sh
+fossgis_run ./service_postgresql.sh
 # ./service_mysql.sh
 
 ### Project installers
 ## C stack
-./install_postgis.sh
-./install_spatialite.sh
-./install_osm.sh
-./load_postgis.sh
-./install_pgadmin.sh
-./install_pgrouting.sh
-./install_ossim.sh
-./install_mapserver.sh
-./install_mapcache.sh
-./install_tinyows.sh
+fossgis_run ./install_postgis.sh
+fossgis_run ./install_spatialite.sh
+fossgis_run ./install_osm.sh
+fossgis_run ./load_postgis.sh
+fossgis_run ./install_pgadmin.sh
+fossgis_run ./install_pgrouting.sh
+fossgis_run ./install_ossim.sh
+fossgis_run ./install_mapserver.sh
+fossgis_run ./install_mapcache.sh
+fossgis_run ./install_tinyows.sh
 # ./install_gmt.sh # install_vm_only
-./install_mapnik.sh
-./install_otb.sh
-./install_saga.sh
-./install_grass.sh
-./install_qgis.sh
-./install_qgis_server.sh
-./check_gis_stack.sh
+fossgis_run ./install_mapnik.sh
+fossgis_run ./install_otb.sh
+fossgis_run ./install_saga.sh
+fossgis_run ./install_grass.sh
+fossgis_run ./install_qgis.sh
+fossgis_run ./install_qgis_server.sh
+fossgis_run ./check_gis_stack.sh
 # ./install_qfield.sh # install_vm_only
 # ./install_zoo-project.sh "$ARCH" # install_vm_only
-./install_marble.sh
-./install_opencpn.sh
-./install_xygrib.sh
-./install_PDAL.sh
+fossgis_run ./install_marble.sh
+fossgis_run ./install_opencpn.sh
+fossgis_run ./install_xygrib.sh
+fossgis_run ./install_PDAL.sh
 
 ## Python stack
-./install_mapproxy.sh
-./install_owslib.sh
-./install_pycsw.sh
-./install_pywps.sh
-./install_pygeoapi.sh
+fossgis_run ./install_mapproxy.sh
+fossgis_run ./install_owslib.sh
+fossgis_run ./install_pycsw.sh
+fossgis_run ./install_pywps.sh
+fossgis_run ./install_pygeoapi.sh
 # ./install_eoxserver.sh # install_vm_only
-./install_istsos.sh
+fossgis_run ./install_istsos.sh
 # ./install_actinia.sh # install_vm_only
-./install_datacube.sh
+fossgis_run ./install_datacube.sh
 
 ## R stack
-./install_R.sh
+fossgis_run ./install_R.sh
 
 ## Jupyter
-./install_jupyter.sh
+fossgis_run ./install_jupyter.sh
 
 ## Java stack
-./install_geoserver.sh
+fossgis_run ./install_geoserver.sh
 # ./install_geonetwork.sh # install_vm_only
-./install_deegree.sh
-./install_openjump.sh
+fossgis_run ./install_deegree.sh
+fossgis_run ./install_openjump.sh
 # ./install_gvsig.sh "$ARCH" # install_vm_only
-./install_gpsprune.sh
+fossgis_run ./install_gpsprune.sh
 
 ## Node.js, Docker, VS Code (FOSSGIS workshop tools)
-./install_node.sh
-./install_docker.sh
-./install_vscode.sh
+fossgis_run ./install_node.sh
+fossgis_run ./install_docker.sh
+fossgis_run ./install_vscode.sh
 
 ## Java + default tomcat
 # ./install_52nSOS.sh # install_vm_only
 
 ## PHP stack
-./install_mapbender.sh
-./install_geomoose.sh
+fossgis_run ./install_mapbender.sh
+fossgis_run ./install_geomoose.sh
 
 ## more Python (GeoServer rdeps)
 # ./install_geonode.sh # install_vm_only
@@ -233,24 +243,24 @@ else
 # ./install_trex.sh # install_vm_only
 
 ## Javascript et al
-./install_openlayers.sh
-./install_leaflet.sh
-./install_cesium.sh
-./install_geoext.sh
+fossgis_run ./install_openlayers.sh
+fossgis_run ./install_leaflet.sh
+fossgis_run ./install_cesium.sh
+fossgis_run ./install_geoext.sh
 # ./install_rasdaman.sh # install_vm_only
-./install_geostyler.sh
+fossgis_run ./install_geostyler.sh
 # ./install_re3gistry.sh # install_vm_only
 # ./install_etf.sh # install_vm_only
 
 ## Docs, Data and extras
-./load_gisdata.sh
-./install_docs.sh "$BUILD_MODE"
+fossgis_run ./load_gisdata.sh
+fossgis_run ./install_docs.sh "$BUILD_MODE"
 # ./install_edutools.sh
 
 ## Desktop and Housekeeping
-./install_desktop.sh
-./install_icons_and_menus.sh
-./setdown.sh
+fossgis_run ./install_desktop.sh
+fossgis_run ./install_icons_and_menus.sh
+fossgis_run ./setdown.sh
 
 fi
 rm -rf "$FOSSGIS_DIR"
