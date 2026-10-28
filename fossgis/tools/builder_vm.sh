@@ -401,12 +401,11 @@ cmd_follow() {
       echo \"builder_vm: following \$LOG\"
       PID=\$(systemctl show -p MainPID --value fossgis-build 2>/dev/null)
       if [ -n \"\$PID\" ] && [ \"\$PID\" != 0 ] ; then
-         # Follow the symlink path so we stay on the current build's log.
-         if [ -e $VM_BUILD/logs/latest.log ] ; then
-            tail -n +1 -F --pid=\"\$PID\" $VM_BUILD/logs/latest.log 2>/dev/null
-         else
-            tail -n +1 -F --pid=\"\$PID\" \"\$LOG\" 2>/dev/null
-         fi
+         # Follow the dated file by descriptor (-f). Map CR to LF so tools that
+         # rewrite one progress line (mksquashfs, apt) keep scrolling in
+         # terminals that ignore carriage return over SSH.
+         stdbuf -oL tail -n +1 -f --pid=\"\$PID\" \"\$LOG\" 2>/dev/null \
+            | stdbuf -oL tr '\\r' '\\n'
       else
          cat \"\$LOG\"
       fi"
