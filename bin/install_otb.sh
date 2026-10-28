@@ -143,34 +143,69 @@ if ldd "$OTB_ROOT/bin/$OTB_SMOKE" 2>/dev/null | grep -q "not found" ; then
 fi
 echo "FOSSGIS: OTB smoke OK ($OTB_SMOKE)"
 
-# Thin profile: env only, never source otbenv.profile (avoids post_install on su -).
+# OTB env must NOT be in /etc/profile.d: PYTHONPATH/LD_LIBRARY_PATH/GDAL_*
+# from the binary tarball shadow Ubuntu/QGIS python3-gdal (No module named
+# _gdal / osgeo._gdal) and can break system gdalinfo. Env only in wrappers.
 cat << EOF > /etc/profile.d/otb.sh
-# Orfeo Toolbox ${OTB_VERSION} (FOSSGIS thin env; post_install already done as root)
+# Orfeo Toolbox ${OTB_VERSION}: path marker only. Full env is in
+# /usr/local/bin/{monteverdi,mapla,otbcli*} wrappers (see install_otb.sh).
 OTB_INSTALL_DIR="$OTB_ROOT"
-if [ -f "\$OTB_INSTALL_DIR/tools/install_done.txt" ] ; then
-   PATH="\$OTB_INSTALL_DIR/bin:\$PATH"
-   OTB_APPLICATION_PATH="\$OTB_INSTALL_DIR/lib/otb/applications\${OTB_APPLICATION_PATH:+:\$OTB_APPLICATION_PATH}"
-   PYTHONPATH="\$OTB_INSTALL_DIR/lib/otb/python:\$OTB_INSTALL_DIR/lib/python3/dist-packages\${PYTHONPATH:+:\$PYTHONPATH}"
-   GDAL_DATA="\$OTB_INSTALL_DIR/share/gdal"
-   PROJ_LIB="\$OTB_INSTALL_DIR/share/proj"
-   LD_LIBRARY_PATH="\$OTB_INSTALL_DIR/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
-   export OTB_INSTALL_DIR PATH OTB_APPLICATION_PATH PYTHONPATH GDAL_DATA PROJ_LIB
-   export LD_LIBRARY_PATH LC_NUMERIC=C GDAL_DRIVER_PATH=disable
-fi
+export OTB_INSTALL_DIR
 EOF
 chmod 644 /etc/profile.d/otb.sh
 
-# Convenience wrappers on PATH (source thin profile, not otbenv.profile)
+cat << EOF > /usr/local/bin/otb-env.sh
+# Sourced by OTB wrappers; not for login shells.
+# shellcheck shell=sh
+OTB_INSTALL_DIR="\${OTB_INSTALL_DIR:-$OTB_ROOT}"
+if [ ! -f "\$OTB_INSTALL_DIR/tools/install_done.txt" ] ; then
+   echo "OTB not post-installed under \$OTB_INSTALL_DIR" >&2
+   return 1 2>/dev/null || exit 1
+fi
+PATH="\$OTB_INSTALL_DIR/bin:\$PATH"
+OTB_APPLICATION_PATH="\$OTB_INSTALL_DIR/lib/otb/applications\${OTB_APPLICATION_PATH:+:\$OTB_APPLICATION_PATH}"
+PYTHONPATH="\$OTB_INSTALL_DIR/lib/otb/python:\$OTB_INSTALL_DIR/lib/python3/dist-packages\${PYTHONPATH:+:\$PYTHONPATH}"
+GDAL_DATA="\$OTB_INSTALL_DIR/share/gdal"
+PROJ_LIB="\$OTB_INSTALL_DIR/share/proj"
+LD_LIBRARY_PATH="\$OTB_INSTALL_DIR/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+export OTB_INSTALL_DIR PATH OTB_APPLICATION_PATH PYTHONPATH GDAL_DATA PROJ_LIB
+export LD_LIBRARY_PATH LC_NUMERIC=C GDAL_DRIVER_PATH=disable
+EOF
+chmod 644 /usr/local/bin/otb-env.sh
+
 mkdir -p /usr/local/bin
 for APP in monteverdi mapla ; do
    if [ -x "$OTB_ROOT/bin/$APP" ] ; then
       cat << EOF > "/usr/local/bin/$APP"
 #!/bin/sh
-. /etc/profile.d/otb.sh
+# shellcheck source=/dev/null
+. /usr/local/bin/otb-env.sh
 exec "$OTB_ROOT/bin/$APP" "\$@"
 EOF
       chmod 755 "/usr/local/bin/$APP"
    fi
+done
+
+# otbcli and otbcli_* need the same env when invoked from PATH.
+if [ -x "$OTB_ROOT/bin/otbcli" ] ; then
+   cat << EOF > /usr/local/bin/otbcli
+#!/bin/sh
+# shellcheck source=/dev/null
+. /usr/local/bin/otb-env.sh
+exec "$OTB_ROOT/bin/otbcli" "\$@"
+EOF
+   chmod 755 /usr/local/bin/otbcli
+fi
+for CLI in "$OTB_ROOT"/bin/otbcli_* ; do
+   [ -x "$CLI" ] || continue
+   NAME=`basename "$CLI"`
+   cat << EOF > "/usr/local/bin/$NAME"
+#!/bin/sh
+# shellcheck source=/dev/null
+. /usr/local/bin/otb-env.sh
+exec "$CLI" "\$@"
+EOF
+   chmod 755 "/usr/local/bin/$NAME"
 done
 
 # Desktop launchers

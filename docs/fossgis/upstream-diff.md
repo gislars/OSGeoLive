@@ -105,19 +105,16 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** upstream-tauglich
 - **Merge:** `chore/build-logs`
 
-### ISO in QEMU starten
+### ISO-Test: VirtualBox statt run_iso.sh
 
-- **Dateien:** `fossgis/tools/run_iso.sh`
-- **Was:** startet das neueste `build/osgeolive-*.iso` (oder ein angegebenes) in
-  QEMU/KVM, standardmäßig per UEFI, mit `--bios` per BIOS. Die Zwischenablage wird
-  über SPICE mit dem Host geteilt: Auf dem Host braucht es `remote-viewer` (Paket
-  `virt-viewer`), im Gast läuft `spice-vdagent`. Das GTK-Fenster von Ubuntus QEMU
-  kann keine Zwischenablage; ohne `remote-viewer` startet das Skript trotzdem und
-  weist darauf hin.
-- **Warum:** ein kurzer Befehl für den QEMU-Test vor jedem Push, Fehlermeldungen
-  lassen sich aus der VM auf den Host kopieren.
+- **Dateien:** `fossgis/tools/run_iso.sh` (entfernt)
+- **Was:** Das QEMU/SPICE-Hilfsskript `run_iso.sh` ist entfernt. Gebaute ISOs
+  werden lokal in VirtualBox getestet (Maus/Zwischenablage ueber Guest
+  Additions bzw. VirtualBox-UI). Die Build-VM bleibt QEMU (`builder_vm.sh`).
+- **Warum:** SPICE/Tablet/HiDPI war fehleranfaellig; VirtualBox reicht fuer den
+  ISO-Smoke. Kein `spice-vdagent` im Image noetig.
 - **Einordnung:** nur FOSSGIS (Werkzeug)
-- **Merge:** `chore/run-iso`
+- **Merge:** `fix/otb-env-no-qemu`
 
 ### Vorgabe-Repository ist der Fork
 
@@ -475,16 +472,18 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Dateien:** `bin/install_otb.sh`
 - **Was:** `libotb`/`monteverdi` fehlen; OTB 9.1.1 von
   `orfeo-toolbox.org/packages/OTB-9.1.1-Linux.tar.gz` nach
-  `/usr/local/lib/OTB-9.1.1`. Postinstall (`tools/post_install.sh`: cmake-Pfad,
-  `sanitize_rpath`) laeuft einmal als root; `/etc/profile.d/otb.sh` setzt nur
-  Env und sourct nicht `otbenv.profile` (sonst wuerde `su - user` in
-  `install_node.sh` den Erststart als user ausloesen, build126: 921x
-  Permission denied). Marker `tools/install_done.txt` verhindert erneute
-  Erstinitialisierung. Upstream liefert kein
-  `OTB-9.1-GDAL-bindings-py314.tar.gz` (HTTP 404); Python-OTB bleibt damit
-  unter Resolute unvollstaendig, CLI/Mapla/Monteverdi bleiben nutzbar.
+  `/usr/local/lib/OTB-9.1.1`. Postinstall (cmake-Pfad, `sanitize_rpath`)
+  laeuft einmal als root; Marker `tools/install_done.txt`. Globales
+  `/etc/profile.d/otb.sh` setzt nur `OTB_INSTALL_DIR` (kein
+  `PYTHONPATH`/`LD_LIBRARY_PATH`/`GDAL_*`): sonst ueberschattet OTBs
+  unvollstaendiges `osgeo` das System-`python3-gdal` und QGIS meldet
+  `No module named _gdal`. Volle OTB-Env nur in
+  `/usr/local/bin/otb-env.sh` und den Wrappern `monteverdi`/`mapla`/`otbcli*`.
+  Upstream liefert kein `OTB-9.1-GDAL-bindings-py314.tar.gz`; Python-OTB
+  bleibt unter Resolute unvollstaendig, CLI/Mapla/Monteverdi bleiben nutzbar.
 - **Einordnung:** upstream-tauglich (Binary + root-Postinstall); py314-Luecke temporaer
-- **Merge:** `build/resolute-app-ports`, `fix/otb-root-postinstall`
+- **Merge:** `build/resolute-app-ports`, `fix/otb-root-postinstall`,
+  `fix/otb-env-no-qemu`
 
 ### OSSIM und PDAL vorerst ausgelassen
 
