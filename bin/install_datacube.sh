@@ -1,25 +1,18 @@
 #!/bin/sh
-# Copyright (c) 2023-2024 The Open Source Geospatial Foundation and others.
+# Copyright (c) 2023-2026 The Open Source Geospatial Foundation and others.
 # Licensed under the GNU LGPL version >= 2.1.
-#
-# This library is libre software; you can redistribute it and/or modify it
-# under the terms of the GNU Lesser General Public License as published
-# by the Free Software Foundation, either version 2.1 of the License,
-# or any later version.  This library is distributed in the hope that
-# it will be useful, but WITHOUT ANY WARRANTY, without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU Lesser General Public License for more details, either
-# in the "LICENSE.LGPL.txt" file distributed with this software or at
-# web page "http://www.fsf.org/licenses/lgpl.html".
 #
 # About:
 # =====
-# This script will initialize core datacube python3   -darkblueb 2023
+# Initialize Open Data Cube. Ubuntu 26.04 has no python3-datacube / odc-*
+# debs (build126); install via the shared FOSSGIS venv.
 #
 
 ./diskspace_probe.sh "`basename $0`" begin
 BUILD_DIR=`pwd`
 ####
+
+set -e
 
 if [ -z "$USER_NAME" ] ; then
    USER_NAME="user"
@@ -27,10 +20,21 @@ fi
 USER_HOME="/home/$USER_NAME"
 
 TMP="/tmp/build_datacube"
-BIN="/usr/local/bin"
 DDIR="/usr/local/share/data/odc"
 
-apt-get install --yes python3-datacube python3-odc-geo python3-odc-stac
+. "$BUILD_DIR/tools/osgeolive_venv.sh"
+
+echo "Installing datacube/odc into $OSGEOLIVE_VENV (no Resolute debs)"
+if ! osgeolive_venv_pip datacube odc-geo odc-stac ; then
+   echo "ERROR: pip install datacube/odc-* failed" >&2
+   exit 1
+fi
+DATACUBE_BIN=`osgeolive_venv_bin datacube`
+if [ ! -x "$DATACUBE_BIN" ] ; then
+   echo "ERROR: datacube binary missing after pip install" >&2
+   exit 1
+fi
+ln -sfn "$DATACUBE_BIN" /usr/local/bin/datacube
 
 mkdir -p ${DDIR} --verbose
 mkdir -p "$TMP"
@@ -39,12 +43,6 @@ cd "$TMP"
 sudo -u $USER_NAME createdb datacube
 sudo -u $USER_NAME psql datacube -c 'create extension postgis'
 sudo -u $USER_NAME psql datacube -c 'create extension hstore'
-
-# -- reset install -----
-# rm -rf .config/datacube
-# psql -c 'drop database datacube'
-
-##-------------------------------------------------
 
 DCONF=/home/${USER_NAME}/.config/datacube
 
@@ -55,7 +53,6 @@ echo "#--" >> ${USER_HOME}/.bashrc
 echo "export DCONF=${USER_HOME}/.config/datacube" >> ${USER_HOME}/.bashrc
 echo "export DATACUBE_CONFIG_PATH=${DCONF}/datacube.conf" >> ${USER_HOME}/.bashrc
 
-#----------------------------------------------
 cat << EOF > ${DCONF}/datacube.conf
 [datacube]
 db_database: datacube
@@ -69,8 +66,6 @@ db_hostname:
 db_username: user
 db_password: user
 EOF
-
-##---------------------------------------------
 
 cat << EOF > ${DCONF}/landsat-clip.yaml
 name: clip_landsat
@@ -97,16 +92,10 @@ measurements:
 
 EOF
 
-##----------------------------------------------------------
-##  initialize base install using a non-privelaged role
-sudo -u $USER_NAME  datacube -v -C ${DCONF}/datacube.conf  \
+sudo -u $USER_NAME "$DATACUBE_BIN" -v -C ${DCONF}/datacube.conf \
     system init
 
 cp -f ${BUILD_DIR}/../app-data/odc/*.yaml ${DCONF}/
-
-
-##----------------------------------------------------------
-##  demo: product description; ingest; data file(s)
 
 wget -c  -O ${DDIR}/esa_10m_2021_prizren.tif \
      https://download.osgeo.org/livedvd/data/odc/esa_10m_2021_prizren.tif
@@ -120,22 +109,19 @@ wget -c  -O ${DCONF}/tsrtm2_dem.odc-product.yaml \
 wget -c  -O ${DCONF}/tsrtm2-sample0.yaml \
      http://download.osgeo.org/livedvd/data/odc/tsrtm2-sample0.yaml
 
-##----------------------------------------------------------
-##  add PRODUCT schema definitions to this local datacube
-sudo -u $USER_NAME datacube -C ${DCONF}/datacube.conf \
+sudo -u $USER_NAME "$DATACUBE_BIN" -C ${DCONF}/datacube.conf \
     product add ${DCONF}/landsat-clip.yaml
 
-sudo -u $USER_NAME datacube -C ${DCONF}/datacube.conf \
+sudo -u $USER_NAME "$DATACUBE_BIN" -C ${DCONF}/datacube.conf \
     product add ${DCONF}/esa_worldcover_2021.odc-product.yaml
 
-sudo -u $USER_NAME datacube -C ${DCONF}/datacube.conf \
+sudo -u $USER_NAME "$DATACUBE_BIN" -C ${DCONF}/datacube.conf \
     product add ${DCONF}/tsrtm2_dem.odc-product.yaml
 
-#--
-sudo -u $USER_NAME datacube -C ${DCONF}/datacube.conf \
+sudo -u $USER_NAME "$DATACUBE_BIN" -C ${DCONF}/datacube.conf \
     dataset add ${DCONF}/esa-sample0.yaml
 
-sudo -u $USER_NAME datacube -C ${DCONF}/datacube.conf \
+sudo -u $USER_NAME "$DATACUBE_BIN" -C ${DCONF}/datacube.conf \
     dataset add ${DCONF}/tsrtm2-sample0.yaml
 
 ####

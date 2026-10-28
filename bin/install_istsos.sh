@@ -1,37 +1,65 @@
 #!/bin/sh
-# Copyright (c) 2016-2024 The Open Source Geospatial Foundation and others.
+# Copyright (c) 2016-2026 The Open Source Geospatial Foundation and others.
 # Licensed under the GNU LGPL version >= 2.1.
-#
-# This library is free software; you can redistribute it and/or modify it
-# under the terms of the GNU Lesser General Public License as published
-# by the Free Software Foundation, either version 2.1 of the License,
-# or any later version.  This library is distributed in the hope that
-# it will be useful, but WITHOUT ANY WARRANTY, without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU Lesser General Public License for more details, either
-# in the "LICENSE.LGPL.txt" file distributed with this software or at
-# web page "http://www.fsf.org/licenses/lgpl.html".
 #
 # About:
 # =====
-# This script will install istSOS server
+# Install istSOS. Ubuntu 26.04 has no python3-istsos deb (build126);
+# use the shared FOSSGIS venv via pip.
+#
 
 ./diskspace_probe.sh "`basename $0`" begin
 ####
+
+set -e
 
 if [ -z "$USER_NAME" ] ; then
    USER_NAME="user"
 fi
 USER_HOME="/home/$USER_NAME"
-USER_DESKTOP="$USER_HOME/Desktop"
 BUILD_DIR=`pwd`
 
-echo "Installing istSOS package"
-apt-get install --assume-yes python3-istsos
+. "$BUILD_DIR/tools/osgeolive_venv.sh"
+
+echo "Installing istSOS into $OSGEOLIVE_VENV (no python3-istsos on Resolute)"
+if ! osgeolive_venv_pip istsos ; then
+   echo "ERROR: pip install istsos failed" >&2
+   exit 1
+fi
+
+ISTSOS_BIN=`osgeolive_venv_bin istsos`
+if [ ! -x "$ISTSOS_BIN" ] ; then
+   # Package may only provide modules; keep a discoverable wrapper.
+   ISTSOS_BIN=`osgeolive_venv_bin python`
+fi
+mkdir -p /usr/local/bin
+cat << EOF > /usr/local/bin/istsos
+#!/bin/sh
+exec "$OSGEOLIVE_VENV/bin/python" -m istsos "\$@"
+EOF
+chmod 755 /usr/local/bin/istsos
 
 echo "Installing istSOS icon"
-cp -f /usr/share/istsos/interface/admin/images/istsos-logo.png \
-       /usr/share/icons/
+ICON_SRC=""
+for CAND in \
+   "$OSGEOLIVE_VENV"/lib/python*/site-packages/istsos*/interface/admin/images/istsos-logo.png \
+   /usr/share/istsos/interface/admin/images/istsos-logo.png ; do
+   # shellcheck disable=SC2086
+   for F in $CAND ; do
+      if [ -f "$F" ] ; then
+         ICON_SRC="$F"
+         break
+      fi
+   done
+   [ -n "$ICON_SRC" ] && break
+done
+if [ -n "$ICON_SRC" ] ; then
+   cp -f "$ICON_SRC" /usr/share/icons/istsos-logo.png
+else
+   echo "FOSSGIS: istsos logo not in package; using generic icon"
+   ln -sfn /usr/share/icons/hicolor/48x48/apps/utilities-terminal.png \
+      /usr/share/icons/istsos-logo.png 2>/dev/null || true
+fi
 
 ## desktop launcher
 cat << EOF > /usr/share/applications/istsos.desktop

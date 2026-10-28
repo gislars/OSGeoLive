@@ -413,6 +413,30 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** FOSSGIS-spezifisch (Pfad); Ersatz upstream-tauglich
 - **Merge:** `build/resolute-app-ports`
 
+### Fehlende Resolute-Debs per osgeolive-venv (istsos, datacube, ipyleaflet)
+
+- **Dateien:** `bin/install_istsos.sh`, `bin/install_datacube.sh`,
+  `bin/install_jupyter.sh`, `bin/tools/osgeolive_venv.sh`
+- **Was:** Unter 26.04 fehlen `python3-istsos`, `python3-datacube`,
+  `python3-odc-geo`, `python3-odc-stac`, `python3-ipyleaflet` (build126:
+  `Unable to locate package`). Installation per `pip` in `/opt/osgeolive-venv`.
+  apt-Fehler brechen die Skripte ab (`set -e`).
+- **Einordnung:** FOSSGIS-spezifisch (venv-Pfad); Ersatz temporaer bis Debs existieren
+- **Merge:** `fix/venv-missing-pkgs`
+
+### Firefox Deutsch ohne firefox-locale-de
+
+- **Dateien:** `bin/install_locale.sh`
+- **Was:** Nach Wechsel auf das Mozilla-Firefox-Deb hat `firefox-locale-de`
+  keinen apt-Kandidaten (build126). Zuerst restliche DE-Pakete; dann Versuch
+  `firefox-locale-de`, sonst Langpack-XPI von
+  `ftp.mozilla.org/.../xpi/de.xpi` nach
+  `/usr/lib/firefox/distribution/extensions/`. Policy `RequestedLocales: ["de"]`
+  bleibt. Scheitert beides, bleibt die UI englisch (dokumentiert), Firefox
+  bleibt lauffaehig.
+- **Einordnung:** FOSSGIS-spezifisch / temporaer
+- **Merge:** `fix/venv-missing-pkgs`
+
 ### OTB als offizielles Linux-Binary
 
 - **Dateien:** `bin/install_otb.sh`

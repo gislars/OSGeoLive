@@ -20,6 +20,8 @@
 ./diskspace_probe.sh "`basename $0`" begin
 ####
 
+set -e
+
 if [ -z "$USER_NAME" ] ; then
    USER_NAME="user"
 fi
@@ -30,14 +32,27 @@ JUPYTER_BUILD_DIR='/tmp/jupyter_build'
 mkdir -p ${JUPYTER_BUILD_DIR}
 cd ${JUPYTER_BUILD_DIR}
 
-# Install jupyter notebook
+. "$BUILD_DIR/tools/osgeolive_venv.sh"
+
+# Jupyter debs (python3-ipyleaflet missing on Resolute, build126)
 apt-get install --assume-yes jupyter-notebook jupyter-client jupyter-nbconvert \
-  python3-ipywidgets python3-ipyleaflet
+  python3-ipywidgets
 
 # 12dev -- note ticket #1965 for trial log
 
 # ipython CLI and R kernel as well
 apt-get install --assume-yes ipython3 r-cran-irkernel
+
+echo "Installing ipyleaflet into $OSGEOLIVE_VENV"
+if ! osgeolive_venv_pip ipyleaflet ; then
+   echo "ERROR: pip install ipyleaflet failed" >&2
+   exit 1
+fi
+# Make the venv kernel/widgets visible to system jupyter where possible.
+"$OSGEOLIVE_VENV/bin/python" -c "import ipyleaflet" || {
+   echo "ERROR: ipyleaflet import failed after pip install" >&2
+   exit 1
+}
 
 # Get Jupyter logo
 cp "$BUILD_DIR"/../app-data/jupyter/jupyter.svg \
