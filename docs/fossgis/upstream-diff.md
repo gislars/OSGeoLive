@@ -442,12 +442,20 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 ### Gemeinsame Python-venv und fehlende Debs
 
 - **Dateien:** `bin/tools/osgeolive_venv.sh`, `bin/base_python.sh`,
-  `bin/install_mapnik.sh`, `bin/install_osm.sh`, `bin/install_pygeoapi.sh`
+  `bin/install_mapnik.sh`, `bin/install_osm.sh`, `bin/install_pygeoapi.sh`,
+  `bin/install_mapproxy.sh`
 - **Was:** venv unter `/opt/osgeolive-venv` für `mappyfile`, `mapnik` (PyPI),
-  `nik4`, `pygeoapi`. System-`libmapnik4.2` bleibt; das Mapnik-Wheel kann eine
-  eigene libmapnik/GDAL mitbringen (Ausnahme vom einheitlichen GDAL-Stack).
+  `nik4`, `pygeoapi`, und Runtime-`mapproxy` (PyPI). System-`libmapnik4.2`
+  bleibt; das Mapnik-Wheel kann eine eigene libmapnik/GDAL mitbringen
+  (Ausnahme vom einheitlichen GDAL-Stack). Deb-`mapproxy` bleibt fuer Docs;
+  `mapproxy_start.sh` nutzt den venv-`mapproxy-util`, sonst scheitert der
+  Start an `Could not import Mapnik` (System-Python sieht die venv-Bindings
+  nicht). Starter haelt bei Fehler das Terminal offen (Port bleibt 8011).
+  Nach `pip install mapproxy` Patch auf `mapproxy/source/mapnik.py`: `map_obj_pid`
+  nicht am Mapnik-`Map` setzen (kein `__dict__`, sonst GetMap 500 auf
+  `mapnik_tile`), und SRS ohne veraltetes `+init=`.
 - **Einordnung:** FOSSGIS-spezifisch (Pfad); Ersatz upstream-tauglich
-- **Merge:** `build/resolute-app-ports`
+- **Merge:** `build/resolute-app-ports`, `fix/live-test-blockers`
 
 ### Fehlende Resolute-Debs per osgeolive-venv (datacube, ipyleaflet); istsos aus
 
@@ -462,6 +470,46 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** FOSSGIS-spezifisch; istsos temporaer entfernt
 - **Merge:** `fix/venv-missing-pkgs`, `fix/drop-istsos-no-pip`,
   `fix/datacube-psycopg2`
+
+### Mapbender: schreibbare PHP-Sessions fuer www-data
+
+- **Dateien:** `bin/install_mapbender.sh`
+- **Was:** HTTP 500 mit Twig `Failed to start the session` /
+  `session_start(): Failed to read session data` unter
+  `var/sessions/prod`. Install setzte Rechte nur auf cache/log, nicht auf
+  Sessions; Apache laeuft als `www-data`. Fix: `var/sessions/prod` anlegen,
+  Sessions/Cache/Log `chown www-data` und `chmod ug+rwX`.
+- **Einordnung:** FOSSGIS-Build-Fix; upstream-tauglich
+- **Merge:** lokal
+
+### JOSM: Upstream-APT + kein globales _JAVA_OPTIONS
+
+- **Dateien:** `bin/install_osm.sh`, `bin/base_java.sh`
+- **Was:** Ubuntu-`josm` (z.B. svn19481) hinter getestetem Upstream; Dialog
+  „Missing JVM Arguments“, weil `base_java.sh` `_JAVA_OPTIONS` in
+  `/etc/environment` setzte und der JOSM-Starter die Java-Version per
+  `head -n1` auf `java -version` liest (erste Zeile ist dann „Picked up
+  _JAVA_OPTIONS…“). Fix: Schriftglättung (#2478) über
+  `$JAVA_HOME/lib/swing.properties` statt `_JAVA_OPTIONS`; JOSM aus
+  `josm.openstreetmap.de/apt` (Suite = `lsb_release -sc`, Pin 700);
+  `/etc/default/josm` setzt `--add-exports=…` zusätzlich ab.
+- **Einordnung:** FOSSGIS / Live-tauglich; Upstream-JOSM-Repo empfohlen
+- **Merge:** lokal
+
+### pycsw Runtime im osgeolive-venv (kein Dist-Patch)
+
+- **Dateien:** `bin/install_pycsw.sh`, `app-conf/pycsw/` (`wsgi.py`, `default.cfg`,
+  `apache-pycsw.conf`)
+- **Was:** Deb-`python3-pycsw` 2.6.2 ist unter Resolute kaputt (kein stdlib
+  `cgi`, inkompatibel mit System-SQLAlchemy 2.0; Upstream-Issue #1012, Fix
+  dort ausstehend). Statt Dateien in `dist-packages` zu patchen: Runtime in
+  `/opt/osgeolive-venv` mit `pycsw==2.6.2`, `SQLAlchemy>=1.4,<2`,
+  `legacy-cgi`; Apache `WSGIDaemonProcess` mit `python-home` und eigener
+  WSGI-/Config unter `app-conf/pycsw/`. Deb-Pakete bleiben fuer Demo-DB und
+  Docs. Deb-`pycsw-wsgi` wird per `a2disconf` zugunsten von
+  `osgeolive-pycsw` abgeschaltet.
+- **Einordnung:** FOSSGIS-Workaround bis Deb/Upstream SA2 + cgi liefern
+- **Merge:** lokal
 
 ### Firefox Deutsch ohne firefox-locale-de
 

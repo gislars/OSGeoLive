@@ -33,10 +33,27 @@ if [ $? -ne 0 ] ; then
 fi
 update-java-alternatives --set "java-1.$JAVA_VERSION.0-openjdk-amd64"
 
-cat <<EOF >> /etc/environment
-# fix #2478 - java ugly/non-antialiased font rendering
-_JAVA_OPTIONS='-Dawt.useSystemAAFontSettings=on -Dswing.aatext=true'
-EOF
+# GeoServer and other apps expect /usr/lib/jvm/default-java (from
+# default-jre). We pin OpenJDK 21 instead of Ubuntu 26.04's default-jdk
+# (OpenJDK 25), so create the conventional symlink ourselves.
+JAVA_JVM_DIR="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk-amd64"
+if [ -x "$JAVA_JVM_DIR/bin/java" ]; then
+   ln -sfn "java-${JAVA_VERSION}-openjdk-amd64" /usr/lib/jvm/default-java
+else
+   echo "ERROR: expected JVM missing: $JAVA_JVM_DIR"
+   exit 1
+fi
+
+# OSGeoLive #2478: antialiased Swing text. Do NOT use global _JAVA_OPTIONS /
+# JDK_JAVA_OPTIONS: both make "java -version" print a "Picked up ..." line
+# first, which breaks the JOSM launcher (parses version via head -n1) so the
+# required --add-exports flags are skipped ("Missing JVM Arguments").
+SWING_PROPS="$JAVA_JVM_DIR/lib/swing.properties"
+if [ -d "$JAVA_JVM_DIR/lib" ] ; then
+   touch "$SWING_PROPS"
+   grep -q '^swing.aatext=' "$SWING_PROPS" 2>/dev/null || \
+      echo 'swing.aatext=true' >> "$SWING_PROPS"
+fi
 
 # apt-get install --yes gsfonts-x11
 

@@ -44,7 +44,6 @@ mkdir /usr/local/share/osm
 ##----------------------------------------------------------
 apt-get install --assume-yes osm2pgsql osmium-tool python3-osmapi
 apt-get install --assume-yes gpsd gpsd-clients
-apt-get install --assume-yes josm josm-l10n
 
 # nik4 left Debian; install into the shared OSGeoLive venv.
 . "$BUILD_DIR/tools/osgeolive_venv.sh"
@@ -56,7 +55,38 @@ fi
 ln -sfn "`osgeolive_venv_bin nik4`" /usr/local/bin/nik4
 
 ## JOSM -- OpenStreetMap feature editor
-# see also  http://josm.openstreetmap.de/wiki/Download#Ubuntu
+# Prefer the project apt (tested builds). Ubuntu universe lags (e.g. svn19481
+# while tested is newer). See https://josm.openstreetmap.de/wiki/Download#Ubuntu
+mkdir -p /etc/apt/keyrings
+wget -c --progress=dot:mega \
+   -O /etc/apt/keyrings/josm-apt.gpg \
+   https://josm.openstreetmap.de/josm-apt.key
+JOSM_APT_SUITE=`lsb_release -sc 2>/dev/null || echo alldist`
+printf 'deb [signed-by=/etc/apt/keyrings/josm-apt.gpg] https://josm.openstreetmap.de/apt %s universe\n' \
+   "$JOSM_APT_SUITE" > /etc/apt/sources.list.d/josm.list
+cat > /etc/apt/preferences.d/josm << EOF
+Package: josm*
+Pin: origin josm.openstreetmap.de
+Pin-Priority: 700
+EOF
+apt-get update
+apt-get install --assume-yes josm
+# Optional Ubuntu translations package if still available alongside project josm
+apt-get install --assume-yes josm-l10n || true
+
+# Belt-and-suspenders: JPMS exports belong in JAVA_OPTS. The stock /usr/bin/josm
+# adds them only after parsing "java -version"; any global *_JAVA_OPTIONS note
+# on the first line skips that branch ("Missing JVM Arguments" dialog).
+JOSM_EXPORTS="--add-exports=java.base/sun.security.action=ALL-UNNAMED --add-exports=java.desktop/com.sun.imageio.plugins.jpeg=ALL-UNNAMED --add-exports=java.desktop/com.sun.imageio.spi=ALL-UNNAMED"
+if [ -f /etc/default/josm ] ; then
+   if ! grep -q 'add-exports=java.base/sun.security.action' /etc/default/josm ; then
+      printf '\n# OSGeoLive: ensure JPMS exports even if java -version parsing fails\nJAVA_OPTS="%s ${JAVA_OPTS}"\n' \
+         "$JOSM_EXPORTS" >> /etc/default/josm
+   fi
+else
+   printf '# OSGeoLive /etc/default/josm\nJAVA_OPTS="%s"\n' \
+      "$JOSM_EXPORTS" > /etc/default/josm
+fi
 
 # pre-seed the josmrc file to make the default window size fit on a smaller display
 mkdir -p "$USER_HOME"/.josm
@@ -69,20 +99,17 @@ EOF
 cd "$TMP_DIR"
 
 ##------------- JOSM Plugins Area ------------------------------------
-#wget -c --tries=3 --progress=dot:mega \
-#    "http://download.osgeo.org/livedvd/10.0/josm/josm_plugs.tar.bz2"
-
-## TODO bail on err
-#wget  http://download.osgeo.org/livedvd/10.0/josm/josm_plugs.tar.bz2.sha1 | sha1sum --check -
-
-#tar xf josm_plugs.tar.bz2
 mkdir -p "$USER_HOME"/.josm/plugins
-#mv *jar "$USER_HOME"/.josm/plugins/
 chown $USER_NAME:$USER_NAME "$USER_HOME"/.josm -R
 
 #### JOSM desktop icons
-cp /usr/share/applications/org.openstreetmap.josm.desktop \
-  "$USER_HOME"/Desktop/josm.desktop
+if [ -f /usr/share/applications/org.openstreetmap.josm.desktop ] ; then
+   cp /usr/share/applications/org.openstreetmap.josm.desktop \
+     "$USER_HOME"/Desktop/josm.desktop
+elif [ -f /usr/share/applications/josm.desktop ] ; then
+   cp /usr/share/applications/josm.desktop \
+     "$USER_HOME"/Desktop/josm.desktop
+fi
 chmod a+x "$USER_HOME"/Desktop/josm.desktop
 
 # add an icon for viewing The Map online

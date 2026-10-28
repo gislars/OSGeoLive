@@ -34,7 +34,82 @@ USER_HOME="/home/$USER_NAME"
 BIN="/usr/local/bin"
 MAPPROXY_DIR="/usr/local/share/mapproxy"
 
+. "$BUILD_DIR/tools/osgeolive_venv.sh"
+
+# Deb for HTML docs under /usr/share/doc/mapproxy. Runtime must use the
+# osgeolive-venv: Mapnik Python bindings live there (install_mapnik.sh), and
+# system python3-mapproxy cannot import them (CRITICAL exit on start).
 apt-get install --yes mapproxy
+
+if ! osgeolive_venv_pip mapproxy ; then
+   echo "ERROR: pip install mapproxy into osgeolive-venv failed" >&2
+   exit 1
+fi
+MAPPROXY_UTIL=`osgeolive_venv_bin mapproxy-util`
+if [ ! -x "$MAPPROXY_UTIL" ] ; then
+   echo "ERROR: $MAPPROXY_UTIL missing after pip install" >&2
+   exit 1
+fi
+if ! "$OSGEOLIVE_VENV/bin/python" -c "import mapnik" ; then
+   echo "ERROR: mapnik missing in osgeolive-venv; install_mapnik.sh must run first" >&2
+   exit 1
+fi
+
+# Mapnik Map has no __dict__; MapProxy's map_obj_pid attribute write fails
+# (GetMap 500 on mapnik_tile). Also drop deprecated +init= SRS syntax.
+"$OSGEOLIVE_VENV/bin/python" << 'PY'
+from pathlib import Path
+import mapproxy.source.mapnik as mod
+
+path = Path(mod.__file__)
+text = path.read_text()
+orig = text
+
+if "_map_obj_pids" not in text:
+    text = text.replace(
+        "MAX_UNUSED_MAPS = 10\n",
+        "MAX_UNUSED_MAPS = 10\n"
+        "# FOSSGIS: Mapnik Map has no __dict__; keep pid off-object\n"
+        "_map_obj_pids = {}\n",
+        1,
+    )
+
+old_create = """    def _create_map_obj(self, mapfile, process_id):
+        m = mapnik.Map(0, 0)
+        mapnik.load_map(m, str(mapfile))
+        m.map_obj_pid = process_id
+        return m"""
+new_create = """    def _create_map_obj(self, mapfile, process_id):
+        m = mapnik.Map(0, 0)
+        mapnik.load_map(m, str(mapfile))
+        try:
+            m.map_obj_pid = process_id
+        except AttributeError:
+            _map_obj_pids[id(m)] = process_id
+        return m"""
+if old_create in text:
+    text = text.replace(old_create, new_create, 1)
+
+old_check = """            if m.map_obj_pid == process_id:
+                return m"""
+new_check = """            pid = getattr(m, "map_obj_pid", _map_obj_pids.get(id(m)))
+            if pid == process_id:
+                return m"""
+if old_check in text:
+    text = text.replace(old_check, new_check, 1)
+
+old_srs = "m.srs = '+init=%s' % str(query.srs.srs_code.lower())"
+new_srs = "m.srs = str(query.srs.srs_code.lower())"
+if old_srs in text:
+    text = text.replace(old_srs, new_srs, 1)
+
+if text == orig:
+    raise SystemExit(
+        "ERROR: MapProxy mapnik.py patch did not apply; upstream layout changed"
+    )
+path.write_text(text)
+print(f"FOSSGIS: patched {path}")
+PY
 
 echo 'Downloading mapproxy logo ...'
 wget -c --progress=dot:mega \
@@ -42,11 +117,27 @@ wget -c --progress=dot:mega \
    "https://github.com/mapproxy/mapproxy/raw/master/doc/_static/logo.png"
 
 echo "Creating Scripts/Links"
-# Create startup script for MapProxy Server
+# Create startup script for MapProxy Server (venv binary; pause on failure so
+# qterminal -e does not flash closed before the user can read the error)
 mkdir -p "$BIN"
 cat << EOF > "$BIN/mapproxy_start.sh"
 #!/bin/sh
-mapproxy-util serve-develop -b 0.0.0.0:8011 /usr/local/share/mapproxy/mapproxy.yaml
+MAPPROXY_UTIL="$MAPPROXY_UTIL"
+MAPPROXY_CONF="/usr/local/share/mapproxy/mapproxy.yaml"
+if [ ! -x "\$MAPPROXY_UTIL" ]; then
+  echo "ERROR: MapProxy binary missing: \$MAPPROXY_UTIL"
+  echo "Press Enter to close."
+  read -r _
+  exit 1
+fi
+"\$MAPPROXY_UTIL" serve-develop -b 0.0.0.0:8011 "\$MAPPROXY_CONF"
+status=\$?
+if [ "\$status" -ne 0 ]; then
+  echo
+  echo "MapProxy exited with status \$status. Press Enter to close."
+  read -r _
+fi
+exit "\$status"
 EOF
 
 chmod 755 $BIN/mapproxy_start.sh
@@ -59,9 +150,9 @@ cat << EOF > /usr/share/applications/mapproxy-start.desktop
 Type=Application
 Encoding=UTF-8
 Name=Start MapProxy
-Comment=MapProxy for OSGeoLive WMS services
+Comment=MapProxy for OSGeoLive WMS services (http://localhost:8011/demo/)
 Categories=Application;Geography;Geoscience;Education;
-Exec=qterminal -e mapproxy_start.sh
+Exec=qterminal -e $BIN/mapproxy_start.sh
 Icon=mapproxy
 Terminal=false
 StartupNotify=false
