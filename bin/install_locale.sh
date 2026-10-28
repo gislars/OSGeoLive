@@ -12,6 +12,8 @@
 BUILD_DIR=`pwd`
 ####
 
+set -e
+
 if [ -z "$USER_NAME" ] ; then
    USER_NAME="user"
 fi
@@ -25,12 +27,44 @@ KEYMAP_VARIANT="${KEYMAP_VARIANT:-}"
 TIMEZONE="${TIMEZONE:-Europe/Berlin}"
 PAPERSIZE="${PAPERSIZE:-a4}"
 
+# firefox-locale-de has no candidate once Mozilla's firefox deb replaces the
+# Ubuntu transitional package (build126). Install the rest first, then try DE.
 apt-get install --yes \
    language-pack-de language-pack-de-base language-pack-gnome-de \
    qt6-translations-l10n manpages-de \
    hunspell-de-de aspell-de hyphen-de mythes-de \
-   console-setup firefox-locale-de \
+   console-setup \
    gnome-keyring libpam-gnome-keyring
+
+FIREFOX_DE_OK=0
+if apt-cache policy firefox-locale-de 2>/dev/null | grep -q 'Candidate: *[0-9]' ; then
+   apt-get install --yes firefox-locale-de
+   FIREFOX_DE_OK=1
+else
+   echo "FOSSGIS: firefox-locale-de has no apt candidate; trying Mozilla langpack XPI"
+   FF_VER=`firefox --version 2>/dev/null | awk '{print $NF}' || true`
+   FF_LIB=""
+   for D in /usr/lib/firefox /usr/lib/firefox-esr ; do
+      if [ -d "$D" ] ; then
+         FF_LIB="$D"
+         break
+      fi
+   done
+   if [ -n "$FF_VER" ] && [ -n "$FF_LIB" ] ; then
+      mkdir -p "$FF_LIB/distribution/extensions"
+      XPI_URL="https://ftp.mozilla.org/pub/firefox/releases/${FF_VER}/linux-x86_64/xpi/de.xpi"
+      XPI_DST="$FF_LIB/distribution/extensions/langpack-de@firefox.mozilla.org.xpi"
+      if wget -q -O "$XPI_DST" "$XPI_URL" ; then
+         echo "FOSSGIS: installed Firefox langpack from $XPI_URL"
+         FIREFOX_DE_OK=1
+      else
+         rm -f "$XPI_DST"
+         echo "FOSSGIS: Firefox langpack download failed ($XPI_URL); UI stays English" >&2
+      fi
+   else
+      echo "FOSSGIS: cannot resolve Firefox version or lib dir; UI stays English" >&2
+   fi
+fi
 
 # Locales
 if [ -x /usr/sbin/locale-gen ] ; then
