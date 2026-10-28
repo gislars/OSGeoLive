@@ -624,6 +624,16 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** FOSSGIS-spezifisch
 - **Merge:** `feature/german-defaults`
 
+### Casper-Locale-Args an Lubuntu-26.04-grub.cfg
+
+- **Dateien:** `bin/build_chroot.sh`
+- **Was:** Lubuntu 26.04 schreibt `linux /casper/vmlinuz ...` ohne `boot=casper`.
+  Der bisherige `sed` matchte nicht; im ISO fehlten `locale=`,
+  `keyboard-configuration/layoutcode=` und `timezone=` (build159). Neu: Anhaengen
+  an `/casper/vmlinuz`-Zeilen, Abbruch wenn nichts geschrieben wurde.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `fix/casper-grub-locale-args`
+
 ## Konferenzstadt OSM
 
 ### Heidelberg-Extrakt (PBF + XML vor dem Build)
