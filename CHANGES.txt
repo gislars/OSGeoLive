@@ -1,6 +1,15 @@
 OSGeo Live GIS Disc
 ===================
 
+Version 17.0 (FOSSGIS 2027 Heidelberg)
+====================
+
+ * Lubuntu 26.04.1 base
+ * Conference city: Heidelberg (OSM relation extract)
+ * GeoServer 3.0.2, Mapbender 5.0.2, OpenLayers 10.11.0
+ * Cesium 1.146, deegree 3.6.13, QField v4.3.7
+ * German live defaults, optional venue WLAN, Docker/Node/VS Code
+
 Version 17.0
 ====================
 

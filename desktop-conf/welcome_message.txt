@@ -1,23 +1,16 @@
-Welcome to OSGeoLive 17.0
+Willkommen bei OSGeoLive 17.0 (FOSSGIS 2027, Heidelberg)
 
-See the Help icon on the Desktop for information about the
-OSGeoLive disc and virtual-machine, including a synopsis of bundled
-geospatial packages and a series of quick-start short tutorials.
+Auf dem Desktop finden Sie das Hilfe-Icon mit Informationen zur Live-DVD
+und zur virtuellen Maschine, eine Uebersicht der gebuendelten Geo-Pakete
+sowie Quickstarts.
 
-There is a keyboard icon on the lower menu bar that lets you pick the 
-keyboard layout. See the internationalization quickstart in the 
-OSGeoLive help pages for more information.
+Unten in der Leiste koennen Sie das Tastaturlayout umschalten. Weitere
+Hinweise stehen im Internationalisierungs-Quickstart der OSGeoLive-Hilfe.
 
-Passwords for various things can be found in the passwords.txt file
-on the Desktop.
+Passwoerter stehen in der Datei passwords.txt auf dem Desktop.
 
-If you need to become "root" (the UNIX super-user) open a Terminal
-and type "sudo su", then enter "user" as the password if you are
-asked.
+Als Administrator oeffnen Sie ein Terminal und tippen "sudo su". Das
+Passwort lautet "user", falls danach gefragt wird.
 
-The living FAQ can be found here:
-  https://trac.osgeo.org/osgeolive/wiki
-
-
-Happy mapping!
-The OSGeoLive Team
+Viel Erfolg bei der FOSSGIS 2027!
+Das OSGeoLive- und FOSSGIS-Team

@@ -420,6 +420,19 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** temporär
 - **Merge:** `build/resolute-app-ports`
 
+## Branding FOSSGIS 2027
+
+### Texte, ISO-Suffix, Wallpaper-Fallback, Workshop-Icon
+
+- **Dateien:** `fossgis/edition.conf`, `CHANGES.txt`, `desktop-conf/welcome_message.txt`,
+  `bin/install_desktop.sh`, `bin/install_icons_and_menus.sh`, `bin/build_chroot.sh`
+- **Was:** Begruessung und Calamares-Label aus `EDITION_NAME`. Release-ISO heisst
+  `osgeolive-17.0-fossgis2027-amd64`. Wallpaper aus `local/artwork/` mit Fallback
+  auf `desktop-conf/osgeo-desktop.png`. Workshop-Downloads-Icon nur wenn
+  `WORKSHOP_URL` gesetzt ist.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `feature/fossgis2027-branding`
+
 ## Optionales WLAN
 
 ### Venue-Profil aus local.env
