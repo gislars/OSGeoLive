@@ -98,18 +98,28 @@ bin/console assets:install public --symlink --relative
 bin/console fom:user:resetroot --username="root" --password="root" --email="root@example.com" --silent
 bin/console mapbender:database:init -v
 
-chown -R user:www-data "$INSTALL_DIR/mapbender"
-chmod -R ug+w "$INSTALL_DIR/mapbender/var/cache/"
-chmod -R ug+w "$INSTALL_DIR/mapbender/var/log/"
 bin/console assets:install public --symlink --relative
 
-chown -R user:www-data "$INSTALL_DIR/mapbender"
-chmod -R ug+w "$INSTALL_DIR/mapbender/var/cache/"
-chmod -R ug+w "$INSTALL_DIR/mapbender/var/log/"
-chmod -R ug+w "$INSTALL_DIR/mapbender/config/"
-chmod -R ug+w "$INSTALL_DIR/mapbender/public/"
-
-chmod -R ug+w "$INSTALL_DIR/mapbender/var/db/demo.sqlite"
+# PHP sessions run as www-data; without a writable sessions dir Symfony
+# raises Twig RuntimeException "Failed to start the session" (HTTP 500).
+mkdir -p "$INSTALL_DIR/mapbender/var/sessions/prod" \
+         "$INSTALL_DIR/mapbender/var/cache" \
+         "$INSTALL_DIR/mapbender/var/log"
+chown -R "$USER_NAME":www-data "$INSTALL_DIR/mapbender"
+# www-data must own the runtime dirs it writes (sessions/cache/log)
+chown -R www-data:www-data \
+   "$INSTALL_DIR/mapbender/var/sessions" \
+   "$INSTALL_DIR/mapbender/var/cache" \
+   "$INSTALL_DIR/mapbender/var/log"
+chmod -R ug+rwX \
+   "$INSTALL_DIR/mapbender/var/sessions" \
+   "$INSTALL_DIR/mapbender/var/cache" \
+   "$INSTALL_DIR/mapbender/var/log" \
+   "$INSTALL_DIR/mapbender/config" \
+   "$INSTALL_DIR/mapbender/public"
+if [ -f "$INSTALL_DIR/mapbender/var/db/demo.sqlite" ] ; then
+   chmod -R ug+w "$INSTALL_DIR/mapbender/var/db/demo.sqlite"
+fi
 
 # Create apache2 configuration for mapbender
 if [ ! -e /etc/apache2/conf-available/mapbender.conf ] ; then
