@@ -504,10 +504,11 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   `cgi`, inkompatibel mit System-SQLAlchemy 2.0; Upstream-Issue #1012, Fix
   dort ausstehend). Statt Dateien in `dist-packages` zu patchen: Runtime in
   `/opt/osgeolive-venv` mit `pycsw==2.6.2`, `SQLAlchemy>=1.4,<2`,
-  `legacy-cgi`; Apache `WSGIDaemonProcess` mit `python-home` und eigener
-  WSGI-/Config unter `app-conf/pycsw/`. Deb-Pakete bleiben fuer Demo-DB und
-  Docs. Deb-`pycsw-wsgi` wird per `a2disconf` zugunsten von
-  `osgeolive-pycsw` abgeschaltet.
+  `legacy-cgi`, `setuptools>=65,<82` (`pkg_resources`; 82+ entfernt das Modul,
+  build155);
+  Apache `WSGIDaemonProcess` mit `python-home` und eigener WSGI-/Config unter
+  `app-conf/pycsw/`. Deb-Pakete bleiben fuer Demo-DB und Docs. Deb-`pycsw-wsgi`
+  wird per `a2disconf` zugunsten von `osgeolive-pycsw` abgeschaltet.
 - **Einordnung:** FOSSGIS-Workaround bis Deb/Upstream SA2 + cgi liefern
 - **Merge:** lokal
 
