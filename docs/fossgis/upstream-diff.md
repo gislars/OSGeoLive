@@ -368,6 +368,15 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   Pinning FOSSGIS-spezifisch
 - **Merge:** `build/gis-stack`, Nacharbeit `fix/gis-stack-verify`
 
+### GeoServer rm -f fuer fehlende JAR-Globs; pgAdmin Status hart
+
+- **Dateien:** `bin/install_geoserver.sh`, `bin/install_pgadmin.sh`
+- **Was:** `rm -f` fuer `parboiled-*-1.2.0.jar` und `gs-web-app-*-SNAPSHOT.jar`
+  (build126: Dateien fehlen unter GS 3.0.2). pgAdmin: nach AppArmor-Workaround
+  muss `dpkg` Status `install ok installed` sein, sonst Exit 1.
+- **Einordnung:** upstream-tauglich
+- **Merge:** `fix/geoserver-pgadmin-harden`
+
 ### Vollbuild bricht bei Install-Fehlern ab
 
 - **Dateien:** `bin/inchroot.sh`

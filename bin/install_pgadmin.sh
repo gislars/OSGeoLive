@@ -34,6 +34,11 @@ elif [ -f /var/lib/dpkg/info/pgadmin4-desktop.postinst ]; then
    chmod 755 /var/lib/dpkg/info/pgadmin4-desktop.postinst
    dpkg --configure pgadmin4-desktop
 fi
+if ! dpkg -s pgadmin4-desktop 2>/dev/null | grep -q "Status: install ok installed" ; then
+   echo "ERROR: pgadmin4-desktop not fully installed after AppArmor workaround" >&2
+   dpkg -s pgadmin4-desktop >&2 || true
+   exit 1
+fi
 
 rm -f /etc/apt/sources.list.d/pgadmin4.list
 apt-get -q update
