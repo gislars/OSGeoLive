@@ -246,6 +246,10 @@ cmd_build() {
    fi
    vm_ssh systemctl is-active --quiet fossgis-build && die "a build is already running (follow)."
 
+   # Refresh QGIS plugin pins (cached) and rebuild local ZIP only when needed.
+   # The ZIP is shipped via local/; install_qgis.sh unpacks it in the image.
+   "$TOOLS_DIR/ensure_qgis_plugins.sh" || die "ensure_qgis_plugins.sh failed."
+
    "$GUARD" snapshot "$VM_DIR/host-guard.snapshot" || die "host_guard snapshot failed."
 
    echo "Sending sources ($COMMIT) and local/ ..."
