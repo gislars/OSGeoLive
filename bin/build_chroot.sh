@@ -722,14 +722,21 @@ cp ../edit/usr/share/plymouth/themes/spinner/throbber-*.png ../edit/usr/share/pl
 #Change the text on the lubuntu-text plymouth loader both on lzfiles
 # and on edit folders
 # "Lubuntu 24.04 LTS" up to 24.04, "Lubuntu 26.04" since 26.04
-sed -i -e "s/^title=.ubuntu ${UBU_RELEASE}\( LTS\)\?$/title=OSGeoLive ${VERSION_MODE}/" \
+# FOSSGIS: append conference year when edition.conf provides EDITION_YEAR
+# shellcheck disable=SC1090
+[ -f "$GIT_DIR"/fossgis/edition.conf ] && . "$GIT_DIR"/fossgis/edition.conf
+PLYMOUTH_TITLE="OSGeoLive ${VERSION_MODE}"
+if [ -n "${EDITION_YEAR:-}" ] ; then
+   PLYMOUTH_TITLE="OSGeoLive ${VERSION_MODE} - FOSSGIS ${EDITION_YEAR}"
+fi
+sed -i -e "s/^title=.ubuntu ${UBU_RELEASE}\( LTS\)\?$/title=${PLYMOUTH_TITLE}/" \
     main/usr/share/plymouth/themes/lubuntu-text/lubuntu-text.plymouth
 
-sed -i -e "s/^title=.ubuntu ${UBU_RELEASE}\( LTS\)\?$/title=OSGeoLive ${VERSION_MODE}/" \
+sed -i -e "s/^title=.ubuntu ${UBU_RELEASE}\( LTS\)\?$/title=${PLYMOUTH_TITLE}/" \
     ../edit/usr/share/plymouth/themes/lubuntu-text/lubuntu-text.plymouth
 
 #Optional change it in the .disk/info too
-sed -i -e "s/.ubuntu ${ISO_RELEASE} LTS \"[^\"]*\"/OSGeoLive ${VERSION_MODE}/" \
+sed -i -e "s/.ubuntu ${ISO_RELEASE} LTS \"[^\"]*\"/${PLYMOUTH_TITLE}/" \
     ../extract-cd/.disk/info
 
 # rm ../initrd.lz4

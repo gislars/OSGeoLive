@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+  "name": "FOSSGIS 2027 New Tab",
+  "version": "1.0.0",
+  "description": "Conference new-tab page for the FOSSGIS 2027 OSGeoLive edition",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "fossgis2027-newtab@osgeolive.local",
+      "strict_min_version": "115.0"
+    }
+  }
+}

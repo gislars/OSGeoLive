@@ -214,6 +214,28 @@ cp /usr/local/share/osgeo-desktop/welcome_message.txt "$USER_HOME"/
 chown "$USER_NAME":"$USER_NAME" "$USER_HOME"/welcome_message.txt
 cp /usr/local/share/osgeo-desktop/welcome_message.txt /etc/skel/
 
+# FOSSGIS: one-line terminal banner (interactive shells only)
+# profile.d covers login shells; bashrc covers qterminal (non-login).
+WELCOME_SRC="$BUILD_DIR/../desktop-conf/fossgis-terminal-welcome.sh"
+WELCOME_DST="/etc/profile.d/zz-fossgis-welcome.sh"
+if [ -f "$WELCOME_SRC" ] ; then
+   OSL_VER=`cat "$BUILD_DIR/../VERSION.txt" 2>/dev/null | tr -d '\n' || true`
+   [ -n "$OSL_VER" ] || OSL_VER="17"
+   EDITION_LINE="OSGeoLive ${OSL_VER} · ${EDITION_NAME:-FOSSGIS 2027}"
+   sed -e "s|__EDITION_LINE__|${EDITION_LINE}|" "$WELCOME_SRC" > "$WELCOME_DST"
+   chmod 644 "$WELCOME_DST"
+   for RC in "$USER_HOME/.bashrc" /etc/skel/.bashrc ; do
+      if [ -f "$RC" ] && ! grep -q 'zz-fossgis-welcome.sh' "$RC" ; then
+         cat >> "$RC" << 'RCEOF'
+
+# FOSSGIS edition banner (also in /etc/profile.d for login shells)
+[ -f /etc/profile.d/zz-fossgis-welcome.sh ] && . /etc/profile.d/zz-fossgis-welcome.sh
+RCEOF
+      fi
+   done
+   chown "$USER_NAME":"$USER_NAME" "$USER_HOME/.bashrc" 2>/dev/null || true
+   echo "FOSSGIS: terminal welcome installed ($EDITION_LINE)"
+fi
 
 # xdg nm-applet not loading by default, re-add it to user autostart
 # cp /etc/xdg/autostart/nm-applet.desktop  /etc/skel/.config/autostart/

@@ -118,6 +118,21 @@ Hintergrundbild und optionale Logos liegen in `local/artwork/` (nicht im Repo).
 Dateiname laut `WALLPAPER` in `edition.conf` (Standard `fossgis-desktop.png`).
 Fehlt die Datei, nimmt `install_desktop.sh` `desktop-conf/osgeo-desktop.png`.
 
+Erzeugen mit `fossgis/tools/build_wallpaper.sh` aus Quellen unter
+`local/artwork/sources/` (Audimax-Foto + Heidelberg-Logo aus dem Orga-Artwork).
+Ausgabe: `local/artwork/fossgis-desktop.png` (16:9, Safe-Zone ca. 110 px Rand)
+plus Plymouth-Wasserzeichen unter `desktop-conf/plymouth/lubuntu-logo/`.
+Der Desktop nutzt `WallpaperMode=zoom` (flaechenfuellend, ohne Verzerrung;
+bei anderen Seitenverhaeltnissen werden Bildraender beschnitten). Zielhardware
+der Workshop-Flotte: 15,6" Full HD (1920x1080, 16:9).
+
+VM-Experimente (LXQt-Akzent, wanderndes Lock-Logo) stehen in
+[branding-experiments.md](branding-experiments.md) und sind nicht Default.
+
+Firefox: Policies und New-Tab-Extension unter `app-conf/fossgis/firefox/`
+(Logo-Hintergrund, Verknuepfungen zur Konferenz-Website und zum Pretalx-Fahrplan,
+keine Widgets/Empfehlungen). Firefox wird als Standardbrowser gesetzt.
+
 ## Download-Cache
 
 Der Build hält Downloads zwischen den Läufen in `local/cache/` vor (abschaltbar mit
@@ -186,7 +201,7 @@ Push nur nach ausdruecklicher Freigabe; Ziel ist ausschliesslich
 
 1. `fossgis/edition.conf`: Name, Daten, Ort, `OSM_RELATION`, PBF-URL, Kartenmitte
 2. `fossgis/prepare_data.sh` neu laufen lassen; Stamp und Groessen pruefen
-3. Artwork nach `local/artwork/` legen
+3. Artwork-Quellen nach `local/artwork/sources/`, dann `fossgis/tools/build_wallpaper.sh`
 4. `bin/tools/list_pinned_versions.sh` und ggf. Versionen anheben
 5. Neues Lubuntu-Point-Release / Basis pruefen
 6. deegree 3.7 (Java 21+, Tomcat 11) und andere Major-Upgrades abwaegen
@@ -196,5 +211,6 @@ Push nur nach ausdruecklicher Freigabe; Ziel ist ausschliesslich
 ## Verwandte Dokumente
 
 - [upstream-diff.md](upstream-diff.md): Abweichungen vom Upstream
+- [branding-experiments.md](branding-experiments.md): optionale Branding-Tests in der VM
 - [build-safety.md](build-safety.md): Host-Schutz und Vorfaelle
 - [adr/](adr/README.md): Architekturentscheidungen

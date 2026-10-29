@@ -609,6 +609,27 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
 - **Einordnung:** FOSSGIS-spezifisch
 - **Merge:** `feature/fossgis2027-branding`
 
+### Visuelles Branding (Wallpaper v3b, Plymouth, Panel, Landing)
+
+- **Dateien:** `fossgis/tools/build_wallpaper.sh`, `desktop-conf/fossgis-2027-emblem.svg`,
+  `desktop-conf/panel.conf`, `desktop-conf/plymouth/lubuntu-logo/watermark.png`,
+  `desktop-conf/plymouth/lubuntu-logo/lubuntu_logo.png`,
+  `app-conf/fossgis/landing/`, `bin/build_chroot.sh`, `bin/install_icons_and_menus.sh`,
+  `bin/install_docs.sh`, `bin/install_locale.sh`, `docs/fossgis/branding-experiments.md`,
+  `docs/fossgis/README.md`
+- **Was:** Wallpaper-Skript (Audimax + Konferenzlogo, Safe-Zone, 16:9). Plymouth-Titel
+  `OSGeoLive … - FOSSGIS 2027` und Wasserzeichen. Startmenü-Icon FOSSGIS-Emblem.
+  Apache-Landing unter `http://localhost/`, Firefox-Homepage-Policy. Einzeilige
+  Terminal-Begruessung (`/etc/profile.d/zz-fossgis-welcome.sh`, Hook in `.bashrc`).
+  Firefox: New-Tab-Extension (Logo-Hintergrund, Links Konferenz/Fahrplan/Hilfe),
+  FirefoxHome ohne Widgets/Stories/Sponsoring, Firefox als Standardbrowser
+  (mimeapps + x-www-browser). LXQt-Akzent und wanderndes Lock-Logo nur als
+  dokumentiertes VM-Experiment.
+- **Einordnung:** FOSSGIS-spezifisch
+- **Merge:** `feature/fossgis2027-visual-branding`
+- **Dateien (Ergaenzung):** `desktop-conf/fossgis-terminal-welcome.sh`,
+  `bin/install_desktop.sh`, `app-conf/fossgis/firefox/`, `bin/install_locale.sh`
+
 ## Optionales WLAN
 
 ### Venue-Profil aus local.env

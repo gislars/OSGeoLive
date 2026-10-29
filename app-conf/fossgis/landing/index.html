@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OSGeoLive 17 - FOSSGIS 2027</title>
+  <style>
+    :root {
+      --orange: #ee7f00;
+      --text: #333;
+      --muted: #555;
+      --bg: #f7f7f7;
+      --card: #fff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "DejaVu Sans", "Liberation Sans", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.5;
+    }
+    header {
+      background: var(--card);
+      border-bottom: 3px solid var(--orange);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    header img { width: 72px; height: 72px; }
+    header h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+    header p {
+      margin: 0.2rem 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    main {
+      max-width: 42rem;
+      margin: 1.5rem auto;
+      padding: 0 1.25rem 2rem;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 6px;
+      padding: 1.25rem 1.35rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .card h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1.05rem;
+      color: var(--orange);
+    }
+    ul { margin: 0; padding-left: 1.2rem; }
+    li { margin: 0.45rem 0; }
+    a { color: #0b5; text-decoration: none; }
+    a:hover { text-decoration: underline; color: var(--orange); }
+    footer {
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="fossgis-2027-logo.png" alt="FOSSGIS 2027 Heidelberg">
+    <div>
+      <h1>OSGeoLive 17 · FOSSGIS 2027</h1>
+      <p>Heidelberg Edition · audiMAX, 9.-13. März 2027</p>
+    </div>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Schnellzugriff</h2>
+      <ul>
+        <li><a href="/osgeolive/de/">OSGeoLive-Hilfe und Quickstarts</a></li>
+        <li><a href="/osgeolive/de/overview/overview.html">Übersicht der Geo-Pakete</a></li>
+        <li><a href="/data/">Beispieldaten</a></li>
+        <li><a href="https://fossgis.de/">FOSSGIS e.V.</a> (Netzwerk)</li>
+        <li><a href="https://www.fossgis-konferenz.de/2027/">Konferenz 2027 Heidelberg</a> (Netzwerk)</li>
+      </ul>
+    </div>
+    <footer>
+      Live-System für Workshops der Konferenz in Heidelberg.
+      Zugangsdaten stehen in <code>passwords.txt</code> auf dem Desktop.
+    </footer>
+  </main>
+</body>
+</html>

@@ -93,8 +93,17 @@ cd "$USER_HOME/Desktop"
 ## OSGeo menu and CPU load for top taskbar:
 
 # tweak the lower taskbar
-## Copy OSGeoLive emblem svg to lxqt graphics path
-cp "$BUILD_DIR"/../desktop-conf/osgeolive-emblem-plain.svg /usr/share/lxqt/graphics/osgeolive.svg
+## FOSSGIS conference emblem for the LXQt start menu (fallback: OSGeoLive)
+mkdir -p /usr/share/lxqt/graphics
+if [ -f "$BUILD_DIR"/../desktop-conf/fossgis-2027-emblem.svg ] ; then
+   cp "$BUILD_DIR"/../desktop-conf/fossgis-2027-emblem.svg \
+      /usr/share/lxqt/graphics/fossgis-2027-emblem.svg
+   cp "$BUILD_DIR"/../desktop-conf/fossgis-2027-emblem.svg \
+      /usr/share/lxqt/graphics/osgeolive.svg
+else
+   cp "$BUILD_DIR"/../desktop-conf/osgeolive-emblem-plain.svg \
+      /usr/share/lxqt/graphics/osgeolive.svg
+fi
 
 LXPANEL="/usr/share/lxqt/panel.conf"
 cp "$LXPANEL" "$LXPANEL.bak"

@@ -47,10 +47,6 @@ if [ -d "$FOSSGIS_DOCS" ] && { [ -f "$FOSSGIS_DOCS/en/index.html" ] || [ -f "$FO
    mkdir -p /usr/local/share/osgeolive-docs
    cp -a "$FOSSGIS_DOCS"/. /usr/local/share/osgeolive-docs/
    ln -sfn /usr/local/share/osgeolive-docs "$DEST/osgeolive"
-   # German start page when present
-   if [ -f /usr/local/share/osgeolive-docs/de/index.html ] ; then
-      ln -sfn osgeolive/de/index.html "$DEST/index.html" 2>/dev/null || true
-   fi
 else
    # Upstream fallback (PPA), only when FOSSGIS docs are missing
    if [ "$BUILD_MODE" = "nightly" ] ; then
@@ -59,6 +55,19 @@ else
    fi
    apt-get install --assume-yes osgeolive-docs
    ln -s /usr/share/doc/osgeolive-docs/html $DEST/osgeolive
+fi
+
+# FOSSGIS: local landing page as http://localhost/ (help stays under /osgeolive/)
+LANDING_SRC="$BUILD_DIR/../app-conf/fossgis/landing"
+if [ -f "$LANDING_SRC/index.html" ] ; then
+   mkdir -p "$DEST"
+   cp "$LANDING_SRC/index.html" "$DEST/index.html"
+   if [ -f "$LANDING_SRC/fossgis-2027-logo.png" ] ; then
+      cp "$LANDING_SRC/fossgis-2027-logo.png" "$DEST/fossgis-2027-logo.png"
+   fi
+   echo "FOSSGIS: Apache landing page installed at $DEST/index.html"
+elif [ -f /usr/local/share/osgeolive-docs/de/index.html ] ; then
+   ln -sfn osgeolive/de/index.html "$DEST/index.html" 2>/dev/null || true
 fi
 
 # Create symbolic links to project specific documentation

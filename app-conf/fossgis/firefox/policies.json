@@ -1,0 +1,34 @@
+{
+  "policies": {
+    "RequestedLocales": ["de"],
+    "DontCheckDefaultBrowser": true,
+    "DefaultBrowserSettingEnabled": true,
+    "Homepage": {
+      "URL": "http://localhost/",
+      "Locked": false,
+      "StartPage": "homepage"
+    },
+    "FirefoxHome": {
+      "Search": true,
+      "TopSites": false,
+      "SponsoredTopSites": false,
+      "Highlights": false,
+      "Pocket": false,
+      "Stories": false,
+      "SponsoredPocket": false,
+      "SponsoredStories": false,
+      "Snippets": false,
+      "Weather": false,
+      "Widgets": {
+        "Enabled": false
+      },
+      "Locked": false
+    },
+    "ExtensionSettings": {
+      "fossgis2027-newtab@osgeolive.local": {
+        "installation_mode": "force_installed",
+        "install_url": "file:///usr/local/share/osgeo-desktop/firefox-newtab-ext.xpi"
+      }
+    }
+  }
+}
