@@ -365,6 +365,9 @@ Jeder Eintrag ist einer von drei Klassen zugeordnet:
   Pins; `build_qgis_plugins_zip.py` baut das ZIP. Vor jedem
   `builder_vm.sh build` ruft `ensure_qgis_plugins.sh` Update und bei Bedarf
   ZIP-Neubau auf dem Host auf; unveraenderte Pins nutzen das bestehende ZIP.
+  Core-`db_manager` ist in `QGIS3.ini` aus; Ersatz ist das Community-Plugin
+  `db_manager_community` 1.0.1 (plugins.qgis.org; unmaintained Fork des
+  ehemaligen Core-Plugins, bevor es aus QGIS entfernt wird).
 - **Warum:** Ein einheitlicher Stack ohne UbuntuGIS-PPA; QGIS 4 ist gegen
   `libgdal38` und `grass842` gebaut. Falsch-grüne Teilbuilds und flaky DNS
   im Chroot dürfen den Stack nicht als fertig melden. Plugin-Pins schonend
